@@ -10,7 +10,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [build-dependencies]
-tauri-build = { version = "1.5.0", features = [] }
+tauri-build = { version = "2.0", features = [] }
 
 [[bin]]
 name = "lightning-timer"
@@ -19,7 +19,7 @@ path = "src/main.rs"
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.5.0", features = [ "dialog-open", "fs-read-file", "fs-read-dir", "fs-remove-file", "window-print", "window-minimize", "window-unminimize", "window-start-dragging", "window-show", "window-close", "shell-open", "fs-write-file", "fs-rename-file", "fs-remove-dir", "fs-copy-file", "fs-create-dir", "window-maximize", "fs-exists", "window-unmaximize", "window-hide", "path-all"] }
+tauri = { version = "2.0", features = ["tray-icon", "devtools"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/tauri';
+import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
@@ -7,6 +7,14 @@ import Settings from './components/Settings';
 import { TimerState, Settings as SettingsType } from './types';
 
 const App: React.FC = () => {
+  // デバッグ: Tauri APIの状態を確認
+  useEffect(() => {
+    console.log('DEBUG: Tauri API check');
+    console.log('DEBUG: window.__TAURI__:', (window as unknown as { __TAURI__?: unknown }).__TAURI__);
+    console.log('DEBUG: invoke function:', invoke);
+    console.log('DEBUG: listen function:', listen);
+  }, []);
+
   const [timerState, setTimerState] = useState<TimerState>({
     minutes: 0,
     seconds: 0,
@@ -115,15 +123,19 @@ const App: React.FC = () => {
 
   const openNumberPad = async () => {
     try {
+      console.log('DEBUG: Attempting to open number pad...');
       await invoke('open_numberpad');
+      console.log('DEBUG: Number pad command executed successfully');
     } catch (error) {
-      // エラーハンドリング（ログ出力は本番環境では不要）
+      console.error('DEBUG: Failed to open number pad:', error);
     }
   };
 
   // ナンバーパッドからの入力イベントをリッスン
   useEffect(() => {
+    console.log('DEBUG: Setting up number-input event listener');
     const unlisten = listen('number-input', (event: { payload: { number: string } }) => {
+      console.log('DEBUG: Received number input event:', event);
       const input = event.payload.number;
       // 右から順に挿入する仕様
       const currentTotal = timerState.minutes * 60 + timerState.seconds;
@@ -131,13 +143,34 @@ const App: React.FC = () => {
       const newMinutes = Math.floor(newTotal / 60);
       const newSeconds = newTotal % 60;
 
+      console.log('DEBUG: Current total:', currentTotal, 'New total:', newTotal, 'New minutes:', newMinutes, 'New seconds:', newSeconds);
       updateTimer(newMinutes, newSeconds);
     });
 
     return () => {
+      console.log('DEBUG: Cleaning up number-input event listener');
       unlisten.then(fn => fn());
     };
   }, [timerState.minutes, timerState.seconds, updateTimer]);
+
+  // F12キーでデベロッパーツールを開く
+  useEffect(() => {
+    const handleKeyDown = async (event: KeyboardEvent) => {
+      if (event.key === 'F12') {
+        event.preventDefault();
+        try {
+          await invoke('open_devtools');
+        } catch (error) {
+          console.error('Failed to open devtools:', error);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
 
   return (

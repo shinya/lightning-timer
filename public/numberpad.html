@@ -85,29 +85,9 @@
         line-height: 1.4;
       }
 
-      .close-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        color: #666;
-        cursor: pointer;
-        padding: 5px;
-        border-radius: 4px;
-        transition: all 0.2s ease;
-      }
-
-      .close-btn:hover {
-        background: #f0f0f0;
-        color: #333;
-      }
     </style>
   </head>
   <body>
-    <button class="close-btn" onclick="closeWindow()">×</button>
-
     <div class="number-pad">
       <div class="header">
         <h3>Number Input</h3>
@@ -133,26 +113,39 @@
     </div>
 
     <script>
-      function inputNumber(number) {
-        // Tauriのイベントを送信
-        if (window.__TAURI__) {
-          window.__TAURI__.event.emit('number-input', { number });
-        }
-      }
+      // 数字入力関数
+      async function inputNumber(number) {
+        console.log('DEBUG: Input number:', number);
 
-      function closeWindow() {
-        if (window.__TAURI__) {
-          window.__TAURI__.window.getCurrent().close();
+        // Tauri APIの存在を直接確認
+        if (!window.__TAURI__ || !window.__TAURI__.invoke) {
+          console.error('DEBUG: Tauri API not available');
+          console.log('DEBUG: window.__TAURI__:', window.__TAURI__);
+          return;
+        }
+
+        try {
+          console.log('DEBUG: Sending to Tauri command...');
+          await window.__TAURI__.invoke('send_number_input', { number });
+          console.log('DEBUG: Command sent successfully');
+        } catch (error) {
+          console.error('DEBUG: Failed to send number input:', error);
         }
       }
 
       // キーボードイベントの処理
       document.addEventListener('keydown', (e) => {
+        console.log('DEBUG: Key pressed:', e.key);
         if (e.key >= '0' && e.key <= '9') {
           inputNumber(e.key);
-        } else if (e.key === 'Escape') {
-          closeWindow();
         }
+      });
+
+      // ページ読み込み完了時の初期化
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('DEBUG: Number pad loaded');
+        console.log('DEBUG: window.__TAURI__ available:', !!window.__TAURI__);
+        console.log('DEBUG: window.__TAURI__.invoke available:', !!(window.__TAURI__ && window.__TAURI__.invoke));
       });
     </script>
   </body>
