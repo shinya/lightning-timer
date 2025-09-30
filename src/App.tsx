@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
 import Settings from './components/Settings';
@@ -12,7 +11,6 @@ const App: React.FC = () => {
     console.log('DEBUG: Tauri API check');
     console.log('DEBUG: window.__TAURI__:', (window as unknown as { __TAURI__?: unknown }).__TAURI__);
     console.log('DEBUG: invoke function:', invoke);
-    console.log('DEBUG: listen function:', listen);
   }, []);
 
   const [timerState, setTimerState] = useState<TimerState>({
@@ -94,6 +92,16 @@ const App: React.FC = () => {
     }));
   }, []);
 
+  const handleNumberInput = useCallback((number: number) => {
+    // 右から順に挿入する仕様
+    const currentTotal = timerState.minutes * 60 + timerState.seconds;
+    const newTotal = Math.floor((currentTotal * 10 + number) % 10000);
+    const newMinutes = Math.floor(newTotal / 60);
+    const newSeconds = newTotal % 60;
+
+    updateTimer(newMinutes, newSeconds);
+  }, [timerState.minutes, timerState.seconds, updateTimer]);
+
   const startTimer = () => {
     setTimerState(prev => ({
       ...prev,
@@ -121,32 +129,6 @@ const App: React.FC = () => {
     }));
   };
 
-  // ナンバーパッドからの入力イベントをリッスン（削除：数字ボタンがメインウィンドウに直接配置されたため）
-  // useEffect(() => {
-  //   if (!isTauri()) {
-  //     console.log('DEBUG: Not running in Tauri environment, skipping event listener');
-  //     return;
-  //   }
-  //
-  //   console.log('DEBUG: Setting up number-input event listener');
-  //   const unlisten = listen('number-input', (event: { payload: { number: string } }) => {
-  //     console.log('DEBUG: Received number input event:', event);
-  //     const input = event.payload.number;
-  //     // 右から順に挿入する仕様
-  //     const currentTotal = timerState.minutes * 60 + timerState.seconds;
-  //     const newTotal = Math.floor((currentTotal * 10 + parseInt(input)) % 10000);
-  //     const newMinutes = Math.floor(newTotal / 60);
-  //     const newSeconds = newTotal % 60;
-
-  //     console.log('DEBUG: Current total:', currentTotal, 'New total:', newTotal, 'New minutes:', newMinutes, 'New seconds:', newSeconds);
-  //     updateTimer(newMinutes, newSeconds);
-  //   });
-
-  //   return () => {
-  //     console.log('DEBUG: Cleaning up number-input event listener');
-  //     unlisten.then(fn => fn());
-  //   };
-  // }, [timerState.minutes, timerState.seconds, updateTimer]);
 
   // F12キーでデベロッパーツールを開く
   useEffect(() => {
@@ -191,6 +173,7 @@ const App: React.FC = () => {
           onSettings={() => setShowSettings(true)}
           onMinutesChange={(minutes) => updateTimer(minutes, timerState.seconds)}
           onSecondsChange={(seconds) => updateTimer(timerState.minutes, seconds)}
+          onNumberInput={handleNumberInput}
         />
       </div>
 
