@@ -140,9 +140,10 @@ body {
   display: flex;
   flex-direction: row;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: space-around;
+  gap: 16px;
   min-width: 0;
+  padding: 0 16px;
 }
 
 .time-adjustment {
@@ -465,4 +466,60 @@ body {
 .settings-btn:hover {
   background-color: var(--accent-hover);
   transform: translateY(-1px);
+}
+
+/* Number pad styles */
+.number-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
+  min-width: 180px;
+  border: 2px solid var(--border);
+}
+
+.number-row {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.number-row:last-child {
+  justify-content: center;
+}
+
+.number-btn {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px var(--shadow);
+}
+
+.number-btn:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px var(--shadow);
+  border-color: var(--accent);
+}
+
+.number-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px var(--shadow);
+}
+
+.number-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
