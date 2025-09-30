@@ -8,11 +8,20 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   onStart,
   onPause,
   onReset,
-  onNumberPad,
   onSettings,
   onMinutesChange,
   onSecondsChange
 }) => {
+  const handleNumberClick = (number: number) => {
+    // 右から順に挿入する仕様
+    const currentTotal = minutes * 60 + seconds;
+    const newTotal = Math.floor((currentTotal * 10 + number) % 10000);
+    const newMinutes = Math.floor(newTotal / 60);
+    const newSeconds = newTotal % 60;
+
+    onMinutesChange(newMinutes);
+    onSecondsChange(newSeconds);
+  };
   const handleMinutesUp = () => {
     onMinutesChange(Math.min(99, minutes + 1));
   };
@@ -73,6 +82,87 @@ const TimerControls: React.FC<TimerControlsProps> = ({
         </div>
       </div>
 
+      <div className="number-pad">
+        <div className="number-row">
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(1)}
+            disabled={isRunning}
+          >
+            1
+          </button>
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(2)}
+            disabled={isRunning}
+          >
+            2
+          </button>
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(3)}
+            disabled={isRunning}
+          >
+            3
+          </button>
+        </div>
+        <div className="number-row">
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(4)}
+            disabled={isRunning}
+          >
+            4
+          </button>
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(5)}
+            disabled={isRunning}
+          >
+            5
+          </button>
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(6)}
+            disabled={isRunning}
+          >
+            6
+          </button>
+        </div>
+        <div className="number-row">
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(7)}
+            disabled={isRunning}
+          >
+            7
+          </button>
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(8)}
+            disabled={isRunning}
+          >
+            8
+          </button>
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(9)}
+            disabled={isRunning}
+          >
+            9
+          </button>
+        </div>
+        <div className="number-row">
+          <button
+            className="number-btn"
+            onClick={() => handleNumberClick(0)}
+            disabled={isRunning}
+          >
+            0
+          </button>
+        </div>
+      </div>
+
       <div className="main-controls">
         {!isRunning ? (
           <button className="control-btn start" onClick={onStart}>
@@ -86,14 +176,6 @@ const TimerControls: React.FC<TimerControlsProps> = ({
 
         <button className="control-btn reset" onClick={onReset}>
           Reset
-        </button>
-
-        <button
-          className="control-btn number-pad-btn"
-          onClick={onNumberPad}
-          disabled={isRunning}
-        >
-          Num
         </button>
 
         <button className="control-btn settings-btn" onClick={onSettings}>

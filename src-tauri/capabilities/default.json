@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "permissions": [
+    "core:default"
+  ]
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { invoke } from '@tauri-apps/api/core';
+import { invoke, isTauri } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
@@ -121,43 +121,42 @@ const App: React.FC = () => {
     }));
   };
 
-  const openNumberPad = async () => {
-    try {
-      console.log('DEBUG: Attempting to open number pad...');
-      await invoke('open_numberpad');
-      console.log('DEBUG: Number pad command executed successfully');
-    } catch (error) {
-      console.error('DEBUG: Failed to open number pad:', error);
-    }
-  };
+  // ナンバーパッドからの入力イベントをリッスン（削除：数字ボタンがメインウィンドウに直接配置されたため）
+  // useEffect(() => {
+  //   if (!isTauri()) {
+  //     console.log('DEBUG: Not running in Tauri environment, skipping event listener');
+  //     return;
+  //   }
+  //
+  //   console.log('DEBUG: Setting up number-input event listener');
+  //   const unlisten = listen('number-input', (event: { payload: { number: string } }) => {
+  //     console.log('DEBUG: Received number input event:', event);
+  //     const input = event.payload.number;
+  //     // 右から順に挿入する仕様
+  //     const currentTotal = timerState.minutes * 60 + timerState.seconds;
+  //     const newTotal = Math.floor((currentTotal * 10 + parseInt(input)) % 10000);
+  //     const newMinutes = Math.floor(newTotal / 60);
+  //     const newSeconds = newTotal % 60;
 
-  // ナンバーパッドからの入力イベントをリッスン
-  useEffect(() => {
-    console.log('DEBUG: Setting up number-input event listener');
-    const unlisten = listen('number-input', (event: { payload: { number: string } }) => {
-      console.log('DEBUG: Received number input event:', event);
-      const input = event.payload.number;
-      // 右から順に挿入する仕様
-      const currentTotal = timerState.minutes * 60 + timerState.seconds;
-      const newTotal = Math.floor((currentTotal * 10 + parseInt(input)) % 10000);
-      const newMinutes = Math.floor(newTotal / 60);
-      const newSeconds = newTotal % 60;
+  //     console.log('DEBUG: Current total:', currentTotal, 'New total:', newTotal, 'New minutes:', newMinutes, 'New seconds:', newSeconds);
+  //     updateTimer(newMinutes, newSeconds);
+  //   });
 
-      console.log('DEBUG: Current total:', currentTotal, 'New total:', newTotal, 'New minutes:', newMinutes, 'New seconds:', newSeconds);
-      updateTimer(newMinutes, newSeconds);
-    });
-
-    return () => {
-      console.log('DEBUG: Cleaning up number-input event listener');
-      unlisten.then(fn => fn());
-    };
-  }, [timerState.minutes, timerState.seconds, updateTimer]);
+  //   return () => {
+  //     console.log('DEBUG: Cleaning up number-input event listener');
+  //     unlisten.then(fn => fn());
+  //   };
+  // }, [timerState.minutes, timerState.seconds, updateTimer]);
 
   // F12キーでデベロッパーツールを開く
   useEffect(() => {
     const handleKeyDown = async (event: KeyboardEvent) => {
       if (event.key === 'F12') {
         event.preventDefault();
+        if (!isTauri()) {
+          console.log('DEBUG: Not running in Tauri environment, cannot open devtools');
+          return;
+        }
         try {
           await invoke('open_devtools');
         } catch (error) {
@@ -189,7 +188,6 @@ const App: React.FC = () => {
           onStart={startTimer}
           onPause={pauseTimer}
           onReset={resetTimer}
-          onNumberPad={openNumberPad}
           onSettings={() => setShowSettings(true)}
           onMinutesChange={(minutes) => updateTimer(minutes, timerState.seconds)}
           onSecondsChange={(seconds) => updateTimer(timerState.minutes, seconds)}
