@@ -5,7 +5,7 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "frontendDist": "../dist"
+    "devUrl": "http://localhost:1420"
   },
   "app": {
     "windows": [
@@ -25,23 +25,6 @@
         "visible": true,
         "center": true,
         "devtools": true
-      },
-      {
-        "label": "numberpad",
-        "title": "Number Pad",
-        "width": 300,
-        "height": 400,
-        "minWidth": 300,
-        "minHeight": 400,
-        "maxWidth": 300,
-        "maxHeight": 400,
-        "resizable": false,
-        "alwaysOnTop": true,
-        "decorations": true,
-        "transparent": false,
-        "visible": false,
-        "center": true,
-        "url": "numberpad.html"
       }
     ]
   },

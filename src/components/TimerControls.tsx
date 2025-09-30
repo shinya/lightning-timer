@@ -10,17 +10,11 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   onReset,
   onSettings,
   onMinutesChange,
-  onSecondsChange
+  onSecondsChange,
+  onNumberInput
 }) => {
   const handleNumberClick = (number: number) => {
-    // 右から順に挿入する仕様
-    const currentTotal = minutes * 60 + seconds;
-    const newTotal = Math.floor((currentTotal * 10 + number) % 10000);
-    const newMinutes = Math.floor(newTotal / 60);
-    const newSeconds = newTotal % 60;
-
-    onMinutesChange(newMinutes);
-    onSecondsChange(newSeconds);
+    onNumberInput(number);
   };
   const handleMinutesUp = () => {
     onMinutesChange(Math.min(99, minutes + 1));

@@ -27,6 +27,7 @@ export interface TimerControlsProps {
   onSettings: () => void;
   onMinutesChange: (minutes: number) => void;
   onSecondsChange: (seconds: number) => void;
+  onNumberInput: (number: number) => void;
 }
 
 
