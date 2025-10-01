@@ -60,7 +60,7 @@ const TimerControls: React.FC<TimerControlsProps> = ({
         console.log('DEBUG: Keyboard input - key:', key, 'number:', number);
         handleNumberClick(number);
       }
-      
+
       // SキーでSTART/PAUSE
       else if (key === 's') {
         event.preventDefault();
@@ -76,7 +76,7 @@ const TimerControls: React.FC<TimerControlsProps> = ({
           onStart();
         }
       }
-      
+
       // RキーでRESET
       else if (key === 'r') {
         event.preventDefault();
@@ -236,8 +236,8 @@ const TimerControls: React.FC<TimerControlsProps> = ({
 
       <div className="main-controls">
         {!isRunning ? (
-          <button 
-            className="control-btn start" 
+          <button
+            className="control-btn start"
             onClick={onStart}
             disabled={minutes === 0 && seconds === 0}
             title={minutes === 0 && seconds === 0 ? "時間を設定してください" : "タイマーを開始"}
