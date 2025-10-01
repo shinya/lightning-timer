@@ -76,7 +76,7 @@ const App: React.FC = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [timerState.isRunning, timerState.timeRemaining]);
+  }, [timerState.isRunning, timerState.timeRemaining, lastSetTime]);
 
   const playAlarm = () => {
     // Web Audio APIを使用してアラーム音を生成

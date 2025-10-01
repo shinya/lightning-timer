@@ -30,14 +30,14 @@
 }
 
 .dark {
-  --bg-primary: #1a1a1a;
-  --bg-secondary: #2d2d2d;
-  --text-primary: #ffffff;
-  --text-secondary: #cccccc;
-  --accent: #4a9eff;
-  --accent-hover: #357abd;
-  --border: #444444;
-  --shadow: rgba(0, 0, 0, 0.3);
+  --bg-primary: #000000;
+  --bg-secondary: #1a1a1a;
+  --text-primary: #00ff00;
+  --text-secondary: #00cc00;
+  --accent: #00ff00;
+  --accent-hover: #00cc00;
+  --border: #333333;
+  --shadow: rgba(0, 255, 0, 0.3);
 
   color-scheme: dark;
   color: var(--text-primary);
@@ -112,6 +112,12 @@ body {
   text-shadow: 0 2px 8px var(--shadow);
   letter-spacing: 1px;
   margin-bottom: 3px;
+}
+
+/* ダークモード時のタイマー表示色（AS400風の緑色） */
+.dark .time {
+  color: #00ff00;
+  text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
 }
 
 .minutes, .seconds {
@@ -297,6 +303,11 @@ body {
 .control-btn.settings-btn:hover:not(:disabled) {
   background-color: var(--accent-hover);
   border-color: var(--accent-hover);
+}
+
+/* ダークモード時のSettingsボタンの文字色をグレーに */
+.dark .control-btn.settings-btn {
+  color: #333333;
 }
 
 .control-btn.number-pad-btn {
