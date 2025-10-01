@@ -405,69 +405,76 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 8px;
 }
 
 .settings {
   background-color: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 6px;
+  padding: 12px;
   box-shadow: 0 10px 30px var(--shadow);
-  min-width: 400px;
+  width: 100%;
+  max-width: 600px;
+  max-height: auto;
+  overflow: visible;
 }
 
 .settings-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .settings-header h3 {
   color: var(--text-primary);
-  font-size: 1.5rem;
+  font-size: 1rem;
+  margin: 0;
 }
 
 .settings-content {
-  margin-bottom: 20px;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: space-between;
 }
 
 .setting-item {
-  margin-bottom: 15px;
+  padding: 8px;
+  background-color: var(--bg-primary);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setting-item:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent);
 }
 
 .setting-item label {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  width: 100%;
+  justify-content: center;
 }
 
 .setting-item input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   accent-color: var(--accent);
-}
-
-.settings-footer {
-  text-align: center;
-}
-
-.settings-btn {
-  padding: 10px 20px;
-  background-color: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 6px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-}
-
-.settings-btn:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
+  border-radius: 4px;
 }
 
 /* Number pad styles */

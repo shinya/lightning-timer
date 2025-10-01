@@ -47,12 +47,6 @@ const Settings: React.FC<SettingsProps> = ({ settings, onClose, onSettingsChange
             </label>
           </div>
         </div>
-
-        <div className="settings-footer">
-          <button className="settings-btn" onClick={onClose}>
-            Close
-          </button>
-        </div>
       </div>
     </div>
   );

@@ -28,6 +28,10 @@ const App: React.FC = () => {
 
   const [showSettings, setShowSettings] = useState(false);
 
+  // 最後に設定した時間を記憶する状態
+  const [lastSetTime, setLastSetTime] = useState<{ minutes: number; seconds: number } | null>(null);
+  const [hasNumberBeenEdited, setHasNumberBeenEdited] = useState(false);
+
   // タイマーのロジック
   useEffect(() => {
     let interval: number | null = null;
@@ -39,13 +43,25 @@ const App: React.FC = () => {
           if (newTimeRemaining <= 0) {
             // タイマー終了
             playAlarm();
-            return {
-              ...prev,
-              isRunning: false,
-              timeRemaining: 0,
-              minutes: 0,
-              seconds: 0
-            };
+            // 最後に設定した時間があれば復元
+            if (lastSetTime) {
+              const restoredTotalSeconds = lastSetTime.minutes * 60 + lastSetTime.seconds;
+              return {
+                ...prev,
+                isRunning: false,
+                timeRemaining: restoredTotalSeconds,
+                minutes: lastSetTime.minutes,
+                seconds: lastSetTime.seconds
+              };
+            } else {
+              return {
+                ...prev,
+                isRunning: false,
+                timeRemaining: 0,
+                minutes: 0,
+                seconds: 0
+              };
+            }
           }
           return {
             ...prev,
@@ -100,6 +116,10 @@ const App: React.FC = () => {
   const updateTimerBoth = useCallback((minutes: number, seconds: number) => {
     const totalSeconds = minutes * 60 + seconds;
     console.log('DEBUG: updateTimerBoth called with:', minutes, ':', seconds, 'total:', totalSeconds);
+
+    // 数字が編集されたことを記録
+    setHasNumberBeenEdited(true);
+
     setTimerState(prev => {
       const newState = {
         ...prev,
@@ -113,6 +133,13 @@ const App: React.FC = () => {
   }, []);
 
   const startTimer = () => {
+    // 数字が編集されていた場合のみ、現在の時間を記憶
+    if (hasNumberBeenEdited) {
+      setLastSetTime({ minutes: timerState.minutes, seconds: timerState.seconds });
+      setHasNumberBeenEdited(false); // フラグをリセット
+      console.log('DEBUG: Last set time saved:', timerState.minutes, ':', timerState.seconds);
+    }
+
     setTimerState(prev => ({
       ...prev,
       isRunning: true,
@@ -129,6 +156,10 @@ const App: React.FC = () => {
   };
 
   const resetTimer = () => {
+    // リセット時に記憶もクリア
+    setLastSetTime(null);
+    setHasNumberBeenEdited(false);
+
     setTimerState(prev => ({
       ...prev,
       isRunning: false,
