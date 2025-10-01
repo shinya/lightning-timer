@@ -241,9 +241,18 @@ body {
 }
 
 .control-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
   transform: none;
+}
+
+.control-btn:disabled:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  transform: none;
+  box-shadow: 0 2px 4px var(--shadow);
 }
 
 .control-btn.start {
@@ -315,13 +324,6 @@ body {
   z-index: 1000;
 }
 
-.number-pad {
-  background-color: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 10px 30px var(--shadow);
-  min-width: 300px;
-}
 
 .number-pad-header {
   display: flex;
@@ -359,8 +361,8 @@ body {
 }
 
 .number-btn {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border: 2px solid var(--border);
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -403,69 +405,76 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 8px;
 }
 
 .settings {
   background-color: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 6px;
+  padding: 12px;
   box-shadow: 0 10px 30px var(--shadow);
-  min-width: 400px;
+  width: 100%;
+  max-width: 600px;
+  max-height: auto;
+  overflow: visible;
 }
 
 .settings-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
 }
 
 .settings-header h3 {
   color: var(--text-primary);
-  font-size: 1.5rem;
+  font-size: 1rem;
+  margin: 0;
 }
 
 .settings-content {
-  margin-bottom: 20px;
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  justify-content: space-between;
 }
 
 .setting-item {
-  margin-bottom: 15px;
+  padding: 8px;
+  background-color: var(--bg-primary);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  transition: all 0.2s ease;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setting-item:hover {
+  background-color: var(--bg-secondary);
+  border-color: var(--accent);
 }
 
 .setting-item label {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   cursor: pointer;
   color: var(--text-primary);
-  font-size: 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  width: 100%;
+  justify-content: center;
 }
 
 .setting-item input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   accent-color: var(--accent);
-}
-
-.settings-footer {
-  text-align: center;
-}
-
-.settings-btn {
-  padding: 10px 20px;
-  background-color: var(--accent);
-  color: white;
-  border: none;
-  border-radius: 6px;
   cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-}
-
-.settings-btn:hover {
-  background-color: var(--accent-hover);
-  transform: translateY(-1px);
+  border-radius: 4px;
 }
 
 /* Number pad styles */
@@ -473,12 +482,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px;
-  background: var(--bg-secondary);
+  padding: 5px;
+  min-width: 160px;
+
+  /* background: var(--bg-secondary);
   border-radius: 8px;
-  box-shadow: 0 2px 8px var(--shadow);
-  min-width: 180px;
   border: 2px solid var(--border);
+  box-shadow: 0 2px 8px var(--shadow); */
 }
 
 .number-row {
@@ -492,8 +502,8 @@ body {
 }
 
 .number-btn {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border: 2px solid var(--border);
   border-radius: 6px;
   background: var(--bg-primary);
