@@ -241,9 +241,18 @@ body {
 }
 
 .control-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
   transform: none;
+}
+
+.control-btn:disabled:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  transform: none;
+  box-shadow: 0 2px 4px var(--shadow);
 }
 
 .control-btn.start {
@@ -315,13 +324,6 @@ body {
   z-index: 1000;
 }
 
-.number-pad {
-  background-color: var(--bg-secondary);
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 10px 30px var(--shadow);
-  min-width: 300px;
-}
 
 .number-pad-header {
   display: flex;
@@ -359,8 +361,8 @@ body {
 }
 
 .number-btn {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border: 2px solid var(--border);
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -473,12 +475,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 12px;
-  background: var(--bg-secondary);
+  padding: 5px;
+  min-width: 160px;
+
+  /* background: var(--bg-secondary);
   border-radius: 8px;
-  box-shadow: 0 2px 8px var(--shadow);
-  min-width: 180px;
   border: 2px solid var(--border);
+  box-shadow: 0 2px 8px var(--shadow); */
 }
 
 .number-row {
@@ -492,8 +495,8 @@ body {
 }
 
 .number-btn {
-  width: 40px;
-  height: 40px;
+  width: 34px;
+  height: 34px;
   border: 2px solid var(--border);
   border-radius: 6px;
   background: var(--bg-primary);

@@ -84,23 +84,33 @@ const App: React.FC = () => {
 
   const updateTimer = useCallback((minutes: number, seconds: number) => {
     const totalSeconds = minutes * 60 + seconds;
-    setTimerState(prev => ({
-      ...prev,
-      minutes,
-      seconds,
-      timeRemaining: totalSeconds
-    }));
+    console.log('DEBUG: updateTimer called with:', minutes, ':', seconds, 'total:', totalSeconds);
+    setTimerState(prev => {
+      const newState = {
+        ...prev,
+        minutes,
+        seconds,
+        timeRemaining: totalSeconds
+      };
+      console.log('DEBUG: updateTimer new state:', newState);
+      return newState;
+    });
   }, []);
 
-  const handleNumberInput = useCallback((number: number) => {
-    // 右から順に挿入する仕様
-    const currentTotal = timerState.minutes * 60 + timerState.seconds;
-    const newTotal = Math.floor((currentTotal * 10 + number) % 10000);
-    const newMinutes = Math.floor(newTotal / 60);
-    const newSeconds = newTotal % 60;
-
-    updateTimer(newMinutes, newSeconds);
-  }, [timerState.minutes, timerState.seconds, updateTimer]);
+  const updateTimerBoth = useCallback((minutes: number, seconds: number) => {
+    const totalSeconds = minutes * 60 + seconds;
+    console.log('DEBUG: updateTimerBoth called with:', minutes, ':', seconds, 'total:', totalSeconds);
+    setTimerState(prev => {
+      const newState = {
+        ...prev,
+        minutes,
+        seconds,
+        timeRemaining: totalSeconds
+      };
+      console.log('DEBUG: updateTimerBoth new state:', newState);
+      return newState;
+    });
+  }, []);
 
   const startTimer = () => {
     setTimerState(prev => ({
@@ -173,7 +183,7 @@ const App: React.FC = () => {
           onSettings={() => setShowSettings(true)}
           onMinutesChange={(minutes) => updateTimer(minutes, timerState.seconds)}
           onSecondsChange={(seconds) => updateTimer(timerState.minutes, seconds)}
-          onNumberInput={handleNumberInput}
+          onBothChange={updateTimerBoth}
         />
       </div>
 
