@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { Store } from '@tauri-apps/plugin-store';
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
 import Settings from './components/Settings';
@@ -38,13 +39,68 @@ const App: React.FC = () => {
     darkMode: false
   });
 
+  // 設定の保存・読み込み
+  const loadSettings = useCallback(async () => {
+    if (!isTauri()) return;
+
+    try {
+      const settings = await Store.load('settings.json');
+      const savedSettings = await settings.get<SettingsType>('settings');
+      if (savedSettings) {
+        setSettings(savedSettings);
+        console.log('DEBUG: Settings loaded:', savedSettings);
+      }
+    } catch (error) {
+      console.error('Failed to load settings:', error);
+    }
+  }, []);
+
+  const saveSettings = useCallback(async (newSettings: SettingsType) => {
+    if (!isTauri()) return;
+
+    try {
+      const settings = await Store.load('settings.json');
+      await settings.set('settings', newSettings);
+      await settings.save();
+      console.log('DEBUG: Settings saved:', newSettings);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+    }
+  }, []);
+
   const [showSettings, setShowSettings] = useState(false);
 
   // 最後に設定した時間を記憶する状態
   const [lastSetTime, setLastSetTime] = useState<{ minutes: number; seconds: number } | null>(null);
   const [hasNumberBeenEdited, setHasNumberBeenEdited] = useState(false);
 
-  // タイマーのロジック
+  const loadTimerState = useCallback(async () => {
+    if (!isTauri()) return;
+
+    try {
+      const settings = await Store.load('settings.json');
+      const savedTimerData = await settings.get<{
+        minutes: number;
+        seconds: number;
+        lastSetTime: { minutes: number; seconds: number } | null;
+      }>('timer');
+
+      if (savedTimerData) {
+        setTimerState(prev => ({
+          ...prev,
+          minutes: savedTimerData.minutes,
+          seconds: savedTimerData.seconds,
+          timeRemaining: savedTimerData.minutes * 60 + savedTimerData.seconds
+        }));
+        setLastSetTime(savedTimerData.lastSetTime);
+        console.log('DEBUG: Timer state loaded:', savedTimerData);
+      }
+    } catch (error) {
+      console.error('Failed to load timer state:', error);
+    }
+  }, []);
+
+  // タイマー状態の保存・読み込み
   useEffect(() => {
     let interval: number | null = null;
 
@@ -125,7 +181,7 @@ const App: React.FC = () => {
     });
   }, []);
 
-  const updateTimerBoth = useCallback((minutes: number, seconds: number) => {
+  const updateTimerBoth = useCallback(async (minutes: number, seconds: number) => {
     const totalSeconds = minutes * 60 + seconds;
     console.log('DEBUG: updateTimerBoth called with:', minutes, ':', seconds, 'total:', totalSeconds);
 
@@ -142,7 +198,24 @@ const App: React.FC = () => {
       console.log('DEBUG: updateTimerBoth new state:', newState);
       return newState;
     });
-  }, []);
+
+    // タイマー状態を即座に保存（新しい値を使用）
+    if (isTauri()) {
+      try {
+        const settings = await Store.load('settings.json');
+        const timerData = {
+          minutes,
+          seconds,
+          lastSetTime: lastSetTime
+        };
+        await settings.set('timer', timerData);
+        await settings.save();
+        console.log('DEBUG: Timer state saved immediately:', timerData);
+      } catch (error) {
+        console.error('Failed to save timer state immediately:', error);
+      }
+    }
+  }, [lastSetTime]);
 
   const startTimer = () => {
     // 数字が編集されていた場合のみ、現在の時間を記憶
@@ -206,6 +279,40 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // アプリ起動時に設定とタイマー状態を読み込み
+  useEffect(() => {
+    loadSettings();
+    loadTimerState();
+  }, [loadSettings, loadTimerState]);
+
+  // アプリ終了時にタイマー状態を保存
+  useEffect(() => {
+    const handleBeforeUnload = async () => {
+      // 同期的に保存処理を実行
+      if (isTauri()) {
+        try {
+          const settings = await Store.load('settings.json');
+          const timerData = {
+            minutes: timerState.minutes,
+            seconds: timerState.seconds,
+            lastSetTime: lastSetTime
+          };
+          await settings.set('timer', timerData);
+          await settings.save();
+          console.log('DEBUG: Timer state saved on exit:', timerData);
+        } catch (error) {
+          console.error('Failed to save timer state on exit:', error);
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [timerState.minutes, timerState.seconds, lastSetTime]);
+
   // 設定変更を処理する関数
   const handleSettingsChange = useCallback(async (newSettings: SettingsType) => {
     // Always on topの設定を適用
@@ -220,7 +327,9 @@ const App: React.FC = () => {
     }
 
     setSettings(newSettings);
-  }, [settings.alwaysOnTop]);
+    // 設定を保存
+    await saveSettings(newSettings);
+  }, [settings.alwaysOnTop, saveSettings]);
 
   return (
     <div className={`app ${settings.darkMode ? 'dark' : 'light'}`}>

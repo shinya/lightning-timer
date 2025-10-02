@@ -4,6 +4,7 @@
 use tauri::{AppHandle, Manager, WindowEvent};
 use serde::{Deserialize, Serialize};
 use std::fs;
+use tauri_plugin_store::Builder as StoreBuilder;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 struct WindowState {
@@ -70,9 +71,16 @@ async fn open_devtools(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn save_timer_state_on_exit() -> Result<(), String> {
+    println!("DEBUG: Save timer state on exit command called");
+    Ok(())
+}
+
 
 fn main() {
     tauri::Builder::default()
+        .plugin(StoreBuilder::default().build())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
                 // ウィンドウ状態を復元
@@ -83,9 +91,14 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![open_devtools])
+        .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit])
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { .. } => {
+                // タイマー状態保存を促す
+                if let Some(main_window) = window.app_handle().get_webview_window("main") {
+                    let _ = main_window.eval("if (window.__TAURI__) { window.__TAURI__.core.invoke('save_timer_state_on_exit'); }");
+                }
+
                 // ウィンドウが閉じられる前に状態を保存
                 if let Err(e) = save_window_state(window) {
                     println!("DEBUG: Failed to save window state: {}", e);

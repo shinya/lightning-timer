@@ -32,7 +32,8 @@
     }
   },
   "plugins": {
-    "window-state": null
+    "window-state": null,
+    "store": null
   },
   "bundle": {
     "active": true,
