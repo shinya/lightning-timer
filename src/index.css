@@ -144,12 +144,21 @@ body {
 .timer-controls {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 0 16px;
+}
+
+.controls-row {
+  display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-around;
   gap: 16px;
-  min-width: 0;
-  padding: 0 16px;
+  width: 100%;
 }
 
 .time-adjustment {
@@ -212,12 +221,23 @@ body {
 }
 
 .main-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 0 0 auto;
+  width: 120px;
+}
+
+.main-controls-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
   gap: 8px;
-  flex: 0 0 auto;
-  width: 120px;
+}
+
+.main-controls-volume {
+  margin-top: 8px;
+  width: 140px;
 }
 
 .control-btn {
@@ -486,6 +506,197 @@ body {
   accent-color: var(--accent);
   cursor: pointer;
   border-radius: 4px;
+}
+
+/* アラーム音選択のスタイル */
+.alarm-sound-selector {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alarm-sound-selector label {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+}
+
+.alarm-sound-selector span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.alarm-sound-select {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.alarm-sound-select:hover {
+  border-color: var(--accent);
+  background-color: var(--bg-secondary);
+}
+
+.alarm-sound-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+/* アラーム音量選択のスタイル */
+.alarm-volume-selector {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.alarm-volume-selector label {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+}
+
+.alarm-volume-selector span {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+
+.volume-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  min-width: 40px;
+  text-align: center;
+}
+
+/* メイン画面用ボリュームコントローラー */
+.volume-control-container {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: var(--bg-primary);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.volume-control-container .volume-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.volume-control-container .volume-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-width: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.volume-control-container .volume-label svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.volume-control-container .volume-slider {
+  flex: 1;
+  height: 6px;
+  width: 80px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  margin: 0;
+  padding: 0;
+}
+
+.volume-control-container .volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg-secondary);
+  box-shadow: 0 2px 4px var(--shadow);
+  transition: all 0.2s ease;
+  margin-top: -2px;
+  position: relative;
+}
+
+.volume-control-container .volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px var(--shadow);
+}
+
+.volume-control-container .volume-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg-secondary);
+  box-shadow: 0 2px 4px var(--shadow);
+  transition: all 0.2s ease;
+  margin-top: -4px;
+}
+
+.volume-control-container .volume-slider::-moz-range-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 6px var(--shadow);
+}
+
+.volume-control-container .volume-slider::-webkit-slider-track {
+  background: var(--border);
+  height: 6px;
+  border-radius: 3px;
+  margin: 8px 0;
+}
+
+.volume-control-container .volume-slider::-moz-range-track {
+  background: var(--border);
+  height: 6px;
+  border-radius: 3px;
+  border: none;
+  margin: 8px 0;
+}
+
+.volume-control-container .volume-value {
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  min-width: 35px;
+  text-align: center;
 }
 
 /* Number pad styles */

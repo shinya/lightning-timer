@@ -9,6 +9,8 @@ export interface TimerState {
 export interface Settings {
   alwaysOnTop: boolean;
   darkMode: boolean;
+  alarmSound: string;
+  alarmVolume: number;
 }
 
 export interface TimerDisplayProps {
@@ -28,8 +30,9 @@ export interface TimerControlsProps {
   onMinutesChange: (minutes: number) => void;
   onSecondsChange: (seconds: number) => void;
   onBothChange: (minutes: number, seconds: number) => void;
+  alarmVolume: number;
+  onAlarmVolumeChange: (volume: number) => void;
 }
-
 
 export interface SettingsProps {
   settings: Settings;
