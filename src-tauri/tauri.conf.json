@@ -20,7 +20,7 @@
         "maxHeight": 200,
         "resizable": false,
         "alwaysOnTop": false,
-        "decorations": true,
+        "decorations": false,
         "transparent": false,
         "visible": true,
         "center": false,

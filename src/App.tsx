@@ -234,7 +234,7 @@ const App: React.FC = () => {
     [lastSetTime]
   );
 
-  const startTimer = () => {
+  const startTimer = useCallback(() => {
     // 数字が編集されていた場合のみ、現在の時間を記憶
     if (hasNumberBeenEdited) {
       setLastSetTime({
@@ -255,15 +255,15 @@ const App: React.FC = () => {
       isRunning: true,
       isPaused: false,
     }));
-  };
+  }, [hasNumberBeenEdited, timerState.minutes, timerState.seconds]);
 
-  const pauseTimer = () => {
+  const pauseTimer = useCallback(() => {
     setTimerState((prev) => ({
       ...prev,
       isRunning: false,
       isPaused: true,
     }));
-  };
+  }, []);
 
   const resetTimer = () => {
     // リセット時に記憶もクリア
@@ -379,6 +379,35 @@ const App: React.FC = () => {
       }
     }
   };
+
+  // キーボードイベントハンドラー
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      // S、Space、EnterキーでSTART/PAUSE操作
+      if (
+        event.key === "s" ||
+        event.key === "S" ||
+        event.key === " " ||
+        event.key === "Enter"
+      ) {
+        event.preventDefault();
+        if (timerState.isRunning) {
+          pauseTimer();
+        } else {
+          startTimer();
+        }
+      }
+    },
+    [timerState.isRunning, startTimer, pauseTimer]
+  );
+
+  // キーボードイベントリスナーの設定
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleKeyDown]);
 
   return (
     <div
