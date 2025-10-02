@@ -370,12 +370,31 @@ const App: React.FC = () => {
     }
   };
 
-  const handleDragStart = async () => {
+  const handleDragStart = async (event: React.MouseEvent) => {
+    // 操作可能な要素（ボタン、スライダー、入力要素など）でのドラッグ開始を防ぐ
+    const target = event.target as HTMLElement;
+    const isInteractiveElement = target.closest('button, input, select, .volume-slider, .volume-control-container, .settings-overlay');
+
+    if (isInteractiveElement) {
+      return; // 操作可能な要素ではドラッグを開始しない
+    }
+
     if (isTauri()) {
       try {
         await invoke("start_drag");
       } catch (error) {
         console.error("Failed to start drag:", error);
+      }
+    }
+  };
+
+  const handleMouseUp = async () => {
+    // ドラッグ終了時にウィンドウ位置を保存
+    if (isTauri()) {
+      try {
+        await invoke("save_window_position");
+      } catch (error) {
+        console.error("Failed to save window position:", error);
       }
     }
   };
@@ -413,6 +432,7 @@ const App: React.FC = () => {
     <div
       className={`app ${settings.darkMode ? "dark" : "light"}`}
       onMouseDown={handleDragStart}
+      onMouseUp={handleMouseUp}
     >
       {/* 電源ボタン */}
       <button

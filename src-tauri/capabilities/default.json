@@ -5,7 +5,6 @@
   "permissions": [
     "core:default",
     "core:window:allow-set-always-on-top",
-    "window-state:default",
     "store:default"
   ]
 }

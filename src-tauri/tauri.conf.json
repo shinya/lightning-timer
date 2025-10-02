@@ -5,7 +5,8 @@
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
-    "devUrl": "http://localhost:1420"
+    "devUrl": "http://localhost:1420",
+    "frontendDist": "../dist"
   },
   "app": {
     "windows": [
@@ -30,10 +31,6 @@
     "security": {
       "capabilities": ["main-capability"]
     }
-  },
-  "plugins": {
-    "window-state": null,
-    "store": null
   },
   "bundle": {
     "active": true,

@@ -22,12 +22,12 @@ fn get_window_state_path() -> std::path::PathBuf {
     path
 }
 
-fn save_window_state(window: &tauri::Window) -> Result<(), Box<dyn std::error::Error>> {
+fn save_window_state(window: &tauri::WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
     let state = WindowState {
         x: window.outer_position().ok().map(|p| p.x),
         y: window.outer_position().ok().map(|p| p.y),
-        width: window.outer_size().ok().map(|s| s.width),
-        height: window.outer_size().ok().map(|s| s.height),
+        width: None, // サイズは固定なので保存しない
+        height: None, // サイズは固定なので保存しない
     };
 
     let json = serde_json::to_string_pretty(&state)?;
@@ -53,12 +53,8 @@ fn restore_window_state(window: &tauri::WebviewWindow) -> Result<(), Box<dyn std
         }
     }
 
-    if let Some(width) = state.width {
-        if let Some(height) = state.height {
-            window.set_size(tauri::Size::Physical(tauri::PhysicalSize { width, height }))?;
-            println!("DEBUG: Window size restored: {}x{}", width, height);
-        }
-    }
+    // サイズは固定なので復元しない
+    println!("DEBUG: Window size is fixed, not restoring");
 
     Ok(())
 }
@@ -94,6 +90,17 @@ async fn start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn save_window_position(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        if let Err(e) = save_window_state(&window) {
+            println!("DEBUG: Failed to save window position: {}", e);
+            return Err(format!("Failed to save window position: {}", e));
+        }
+    }
+    Ok(())
+}
+
 
 fn main() {
     tauri::Builder::default()
@@ -108,7 +115,7 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag])
+        .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag, save_window_position])
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { .. } => {
                 // タイマー状態保存を促す
@@ -117,8 +124,10 @@ fn main() {
                 }
 
                 // ウィンドウが閉じられる前に状態を保存
-                if let Err(e) = save_window_state(window) {
-                    println!("DEBUG: Failed to save window state: {}", e);
+                if let Some(main_window) = window.app_handle().get_webview_window("main") {
+                    if let Err(e) = save_window_state(&main_window) {
+                        println!("DEBUG: Failed to save window state: {}", e);
+                    }
                 }
                 // メインウィンドウが閉じられた際にアプリケーション全体を終了
                 std::process::exit(0);

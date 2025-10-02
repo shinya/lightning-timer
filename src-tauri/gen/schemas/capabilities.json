@@ -1,1 +1,1 @@
-{"main-capability":{"identifier":"main-capability","description":"Main window capabilities","local":true,"windows":["main"],"permissions":["core:default","core:window:allow-set-always-on-top","window-state:default","store:default"]}}
+{"main-capability":{"identifier":"main-capability","description":"Main window capabilities","local":true,"windows":["main"],"permissions":["core:default","core:window:allow-set-always-on-top","store:default"]}}
