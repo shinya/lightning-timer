@@ -1,7 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{AppHandle, Manager, WindowEvent};
+use tauri::{AppHandle, Manager, WindowEvent, PhysicalPosition};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri_plugin_store::Builder as StoreBuilder;
@@ -77,6 +77,23 @@ async fn save_timer_state_on_exit() -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn exit_app(app: AppHandle) -> Result<(), String> {
+    println!("DEBUG: Exit app command called");
+    app.exit(0);
+    Ok(())
+}
+
+#[tauri::command]
+async fn start_drag(window: tauri::WebviewWindow) -> Result<(), String> {
+    println!("DEBUG: Start drag command called");
+    if let Err(e) = window.start_dragging() {
+        println!("DEBUG: Failed to start dragging: {}", e);
+        return Err(format!("Failed to start dragging: {}", e));
+    }
+    Ok(())
+}
+
 
 fn main() {
     tauri::Builder::default()
@@ -91,7 +108,7 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit])
+        .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag])
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { .. } => {
                 // タイマー状態保存を促す

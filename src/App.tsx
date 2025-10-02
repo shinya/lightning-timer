@@ -360,8 +360,40 @@ const App: React.FC = () => {
     [settings.alwaysOnTop, saveSettings]
   );
 
+  const handlePowerButtonClick = async () => {
+    if (isTauri()) {
+      try {
+        await invoke("exit_app");
+      } catch (error) {
+        console.error("Failed to exit app:", error);
+      }
+    }
+  };
+
+  const handleDragStart = async () => {
+    if (isTauri()) {
+      try {
+        await invoke("start_drag");
+      } catch (error) {
+        console.error("Failed to start drag:", error);
+      }
+    }
+  };
+
   return (
-    <div className={`app ${settings.darkMode ? "dark" : "light"}`}>
+    <div
+      className={`app ${settings.darkMode ? "dark" : "light"}`}
+      onMouseDown={handleDragStart}
+    >
+      {/* 電源ボタン */}
+      <button
+        className="power-button"
+        onClick={handlePowerButtonClick}
+        title="アプリケーションを終了"
+      >
+        <img src="/icon/power.svg" width="16" height="16" alt="Power" />
+      </button>
+
       <div className="timer-container">
         <TimerDisplay
           minutes={timerState.minutes}

@@ -1,0 +1,15 @@
+<svg id="a" data-name="l1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 302.98 324.28">
+  <defs>
+    <style>
+      .b {
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 34px;
+      }
+    </style>
+  </defs>
+  <path class="b" d="M93.72,51.31C48.35,72.92,17,119.19,17,172.79c0,74.28,60.21,134.49,134.49,134.49s134.49-60.21,134.49-134.49c0-53.6-31.35-99.87-76.72-121.48"/>
+  <line class="b" x1="151.49" y1="17" x2="151.49" y2="135.52"/>
+</svg>
