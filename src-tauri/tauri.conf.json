@@ -23,10 +23,16 @@
         "decorations": true,
         "transparent": false,
         "visible": true,
-        "center": true,
+        "center": false,
         "devtools": true
       }
-    ]
+    ],
+    "security": {
+      "capabilities": ["main-capability"]
+    }
+  },
+  "plugins": {
+    "window-state": null
   },
   "bundle": {
     "active": true,

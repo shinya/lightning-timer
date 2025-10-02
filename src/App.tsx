@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { invoke, isTauri } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import TimerDisplay from './components/TimerDisplay';
 import TimerControls from './components/TimerControls';
 import Settings from './components/Settings';
@@ -11,6 +12,17 @@ const App: React.FC = () => {
     console.log('DEBUG: Tauri API check');
     console.log('DEBUG: window.__TAURI__:', (window as unknown as { __TAURI__?: unknown }).__TAURI__);
     console.log('DEBUG: invoke function:', invoke);
+  }, []);
+
+  // ウィンドウ状態の復元と保存（プラグインが自動処理するため無効化）
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    console.log('DEBUG: Window state plugin should handle restoration automatically');
+
+    // プラグインが自動的に復元・保存を処理するため、手動処理は無効化
+    // デバッグ用にログのみ出力
+    console.log('DEBUG: Relying on plugin automatic restoration');
   }, []);
 
   const [timerState, setTimerState] = useState<TimerState>({
@@ -194,6 +206,21 @@ const App: React.FC = () => {
     };
   }, []);
 
+  // 設定変更を処理する関数
+  const handleSettingsChange = useCallback(async (newSettings: SettingsType) => {
+    // Always on topの設定を適用
+    if (isTauri() && newSettings.alwaysOnTop !== settings.alwaysOnTop) {
+      try {
+        const currentWindow = getCurrentWindow();
+        await currentWindow.setAlwaysOnTop(newSettings.alwaysOnTop);
+        console.log('DEBUG: Always on top set to:', newSettings.alwaysOnTop);
+      } catch (error) {
+        console.error('Failed to set always on top:', error);
+      }
+    }
+
+    setSettings(newSettings);
+  }, [settings.alwaysOnTop]);
 
   return (
     <div className={`app ${settings.darkMode ? 'dark' : 'light'}`}>
@@ -223,7 +250,7 @@ const App: React.FC = () => {
         <Settings
           settings={settings}
           onClose={() => setShowSettings(false)}
-          onSettingsChange={setSettings}
+          onSettingsChange={handleSettingsChange}
         />
       )}
     </div>

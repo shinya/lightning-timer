@@ -1,6 +1,10 @@
 {
-  "identifier": "default",
+  "identifier": "main-capability",
+  "description": "Main window capabilities",
+  "windows": ["main"],
   "permissions": [
-    "core:default"
+    "core:default",
+    "core:window:allow-set-always-on-top",
+    "window-state:default"
   ]
 }
