@@ -47,6 +47,22 @@ const App: React.FC = () => {
     compactMode: false, // 常に通常モードで起動
   });
 
+  // ポート動的設定
+  const setupPort = useCallback(async () => {
+    if (!isTauri()) return 1420; // 開発時は固定ポート
+
+    try {
+      // 製品ビルド時のみ動的ポート取得
+      // 開発時は1420番ポートを使用
+      const port = await invoke("get_available_port");
+      console.log("DEBUG: Using dynamic port:", port);
+      return port;
+    } catch (error) {
+      console.error("Failed to get available port:", error);
+      return 1420; // フォールバック
+    }
+  }, []);
+
   // 設定の保存・読み込み
   const loadSettings = useCallback(async () => {
     if (!isTauri()) return;
@@ -131,6 +147,14 @@ const App: React.FC = () => {
           if (newTimeRemaining <= 0) {
             // タイマー終了
             playAlarm();
+
+            // Time Upウィンドウを表示
+            if (isTauri()) {
+              invoke("show_timeup_window").catch((error) => {
+                console.error("Failed to show Time Up window:", error);
+              });
+            }
+
             // 最後に設定した時間があれば復元
             if (lastSetTime) {
               const restoredTotalSeconds =
@@ -308,9 +332,18 @@ const App: React.FC = () => {
 
   // アプリ起動時に設定とタイマー状態を読み込み
   useEffect(() => {
-    loadSettings();
-    loadTimerState();
-  }, [loadSettings, loadTimerState]);
+    const initializeApp = async () => {
+      // ポート設定
+      const port = await setupPort();
+      console.log("DEBUG: App initialized with port:", port);
+
+      // 設定読み込み
+      await loadSettings();
+      await loadTimerState();
+    };
+
+    initializeApp();
+  }, [setupPort, loadSettings, loadTimerState]);
 
   // アプリ終了時にタイマー状態を保存
   useEffect(() => {
@@ -517,6 +550,43 @@ const App: React.FC = () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleKeyDown]);
+
+  // Time Upウィンドウからのメッセージリスナー
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      console.log('Received message:', event.data);
+      if (event.data?.action === 'closeTimeUpWindow') {
+        console.log('Received closeTimeUpWindow message');
+        if (isTauri()) {
+          // Time Upウィンドウのみを閉じる
+          invoke("hide_timeup_window").catch((error) => {
+            console.error("Failed to hide Time Up window:", error);
+          });
+        }
+      }
+    };
+
+    // localStorage監視
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'closeTimeUpWindow') {
+        console.log('Received localStorage closeTimeUpWindow signal');
+        if (isTauri()) {
+          // Time Upウィンドウのみを閉じる
+          invoke("hide_timeup_window").catch((error) => {
+            console.error("Failed to hide Time Up window:", error);
+          });
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
 
   return (
     <div

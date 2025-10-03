@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Up!!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #4a148c 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            cursor: pointer;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .timeup-container {
+            text-align: center;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .timeup-text {
+            font-size: 8rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+            margin-bottom: 2rem;
+            letter-spacing: 0.1em;
+        }
+
+        .timeup-subtitle {
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+            margin-bottom: 1rem;
+        }
+
+        .timeup-instruction {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* ホバー効果 */
+        body:hover .timeup-text {
+            text-shadow: 0 0 40px rgba(255, 255, 255, 1);
+        }
+
+        body:hover .timeup-subtitle {
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.8);
+        }
+
+        body:hover .timeup-instruction {
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
+        }
+    </style>
+</head>
+<body onclick="closeWindow()">
+    <div class="timeup-container">
+        <div class="timeup-text">Time Up!!</div>
+        <div class="timeup-subtitle">タイマー終了</div>
+        <div class="timeup-instruction">クリックまたはEscキーで閉じる</div>
+    </div>
+
+    <script>
+        // Escキーでウィンドウを閉じる
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeWindow();
+            }
+        });
+
+        // ウィンドウを非表示にする関数
+        function closeWindow() {
+            console.log('closeWindow called - hiding window');
+
+            // メインウィンドウにメッセージを送信（複数の方法）
+            try {
+                console.log('Sending message to main window');
+
+                // 方法1: window.opener
+                if (window.opener) {
+                    console.log('Using window.opener');
+                    window.opener.postMessage({ action: 'closeTimeUpWindow' }, '*');
+                }
+
+                // 方法2: parent
+                if (window.parent && window.parent !== window) {
+                    console.log('Using window.parent');
+                    window.parent.postMessage({ action: 'closeTimeUpWindow' }, '*');
+                }
+
+                // 方法3: top
+                if (window.top && window.top !== window) {
+                    console.log('Using window.top');
+                    window.top.postMessage({ action: 'closeTimeUpWindow' }, '*');
+                }
+
+                // 方法4: localStorage経由
+                try {
+                    localStorage.setItem('closeTimeUpWindow', Date.now().toString());
+                    console.log('Set localStorage flag');
+                } catch (e) {
+                    console.error('Failed to set localStorage:', e);
+                }
+
+            } catch (error) {
+                console.error('Failed to send message to main window:', error);
+            }
+
+            // Tauri APIが利用可能な場合のみ使用（非表示処理）
+            if (window.__TAURI__) {
+                console.log('Tauri API available, using Tauri hide');
+                window.__TAURI__.core.invoke('hide_timeup_window')
+                    .then(() => {
+                        console.log('Tauri window hide successful');
+                    })
+                    .catch((error) => {
+                        console.error('Tauri window hide failed:', error);
+                    });
+            } else {
+                console.log('Tauri API not available, relying on main window to hide');
+            }
+        }
+
+        // ページ読み込み完了時の処理
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Time Up window loaded');
+
+            // Tauri APIの初期化を待つ
+            if (window.__TAURI__) {
+                console.log('Tauri API already available');
+            } else {
+                console.log('Waiting for Tauri API...');
+                // Tauri APIが利用可能になるまで待機
+                const checkTauri = setInterval(() => {
+                    if (window.__TAURI__) {
+                        console.log('Tauri API now available');
+                        clearInterval(checkTauri);
+                    }
+                }, 100);
+
+                // 5秒後にタイムアウト
+                setTimeout(() => {
+                    clearInterval(checkTauri);
+                    if (!window.__TAURI__) {
+                        console.error('Tauri API not available after timeout');
+                    }
+                }, 5000);
+            }
+        });
+    </script>
+</body>
+</html>

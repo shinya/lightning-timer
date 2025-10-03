@@ -1,0 +1,9 @@
+{
+  "identifier": "timeup-capability",
+  "description": "Time Up window capabilities",
+  "windows": ["timeup"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-close"
+  ]
+}

@@ -4,6 +4,8 @@
 use tauri::{AppHandle, Manager, WindowEvent};
 use serde::{Deserialize, Serialize};
 use std::fs;
+#[cfg(not(debug_assertions))]
+use std::net::{TcpListener, SocketAddr};
 use tauri_plugin_store::Builder as StoreBuilder;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -20,6 +22,28 @@ fn get_window_state_path() -> std::path::PathBuf {
     fs::create_dir_all(&path).ok();
     path.push("window_state.json");
     path
+}
+
+fn find_available_port() -> Result<u16, Box<dyn std::error::Error>> {
+    // 開発時は1420番ポートを使用
+    #[cfg(debug_assertions)]
+    {
+        println!("DEBUG: Development mode - using port 1420");
+        return Ok(1420);
+    }
+
+    // 製品ビルド時は20000番台から順番に空いているポートを探す
+    #[cfg(not(debug_assertions))]
+    {
+        for port in 20000..=65535 {
+            let addr = SocketAddr::from(([127, 0, 0, 1], port));
+            if let Ok(_listener) = TcpListener::bind(&addr) {
+                println!("DEBUG: Found available port: {}", port);
+                return Ok(port);
+            }
+        }
+        Err("No available port found in range 20000-65535".into())
+    }
 }
 
 fn save_window_state(window: &tauri::WebviewWindow) -> Result<(), Box<dyn std::error::Error>> {
@@ -160,6 +184,99 @@ async fn focus_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn get_available_port() -> Result<u16, String> {
+    match find_available_port() {
+        Ok(port) => {
+            println!("DEBUG: Available port found: {}", port);
+            Ok(port)
+        }
+        Err(e) => {
+            println!("DEBUG: Failed to find available port: {}", e);
+            Err(format!("Failed to find available port: {}", e))
+        }
+    }
+}
+
+#[tauri::command]
+async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
+    match app.get_webview_window("timeup") {
+        Some(window) => {
+            // 既にウィンドウが存在する場合は表示する
+            println!("DEBUG: Time Up window already exists, showing");
+            window.show().map_err(|e| {
+                println!("DEBUG: Failed to show existing window: {}", e);
+                format!("Failed to show Time Up window: {}", e)
+            })?;
+            window.set_focus().map_err(|e| {
+                println!("DEBUG: Failed to focus window: {}", e);
+                format!("Failed to focus Time Up window: {}", e)
+            })?;
+            Ok(())
+        }
+        None => {
+            // 新しいTime Upウィンドウを作成（メインディスプレイの全画面表示）
+            let _window = tauri::WebviewWindowBuilder::new(
+                &app,
+                "timeup",
+                tauri::WebviewUrl::App("timeup.html".into())
+            )
+            .title("Time Up!!")
+            .fullscreen(true) // 全画面表示
+            .resizable(false)
+            .decorations(false)
+            .always_on_top(true)
+            .visible(true) // 明示的に可視化
+            .build()
+            .map_err(|e| format!("Failed to create Time Up window: {}", e))?;
+
+            println!("DEBUG: Time Up window created in fullscreen mode");
+
+            // ウィンドウを確実に表示
+            if let Some(window) = app.get_webview_window("timeup") {
+                window.show().map_err(|e| {
+                    println!("DEBUG: Failed to show window: {}", e);
+                    format!("Failed to show Time Up window: {}", e)
+                })?;
+                window.set_focus().map_err(|e| {
+                    println!("DEBUG: Failed to focus window: {}", e);
+                    format!("Failed to focus Time Up window: {}", e)
+                })?;
+                println!("DEBUG: Time Up window shown and focused");
+            }
+
+            Ok(())
+        }
+    }
+}
+
+#[tauri::command]
+async fn hide_timeup_window(app: AppHandle) -> Result<(), String> {
+    println!("DEBUG: hide_timeup_window command called");
+    if let Some(window) = app.get_webview_window("timeup") {
+        println!("DEBUG: Found timeup window, attempting to hide");
+        // ウィンドウを閉じる代わりに非表示にする
+        if window.label() == "timeup" {
+            // 全画面モードを解除してから非表示にする
+            window.set_fullscreen(false).map_err(|e| {
+                println!("DEBUG: Failed to exit fullscreen: {}", e);
+                format!("Failed to exit fullscreen: {}", e)
+            })?;
+
+            window.hide().map_err(|e| {
+                println!("DEBUG: Failed to hide window: {}", e);
+                format!("Failed to hide Time Up window: {}", e)
+            })?;
+            println!("DEBUG: Time Up window hidden successfully");
+        } else {
+            println!("DEBUG: Window label mismatch, not hiding");
+        }
+    } else {
+        println!("DEBUG: Time Up window not found");
+    }
+    Ok(())
+}
+
 
 fn main() {
     tauri::Builder::default()
@@ -174,7 +291,7 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag, save_window_position, set_window_size, set_window_resizable, focus_window])
+               .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag, save_window_position, set_window_size, set_window_resizable, focus_window, get_available_port, show_timeup_window, hide_timeup_window])
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { .. } => {
                 // タイマー状態保存を促す

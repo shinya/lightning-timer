@@ -29,7 +29,7 @@
       }
     ],
     "security": {
-      "capabilities": ["main-capability"]
+      "capabilities": ["main-capability", "timeup-capability"]
     }
   },
   "bundle": {
