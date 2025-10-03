@@ -11,6 +11,7 @@ export interface Settings {
   darkMode: boolean;
   alarmSound: string;
   alarmVolume: number;
+  compactMode: boolean;
 }
 
 export interface TimerDisplayProps {

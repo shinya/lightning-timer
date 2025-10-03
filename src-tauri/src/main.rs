@@ -101,6 +101,65 @@ async fn save_window_position(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn set_window_size(app: AppHandle, width: u32, height: u32) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        // 現在のサイズを取得してデバッグ出力
+        if let Ok(current_size) = window.inner_size() {
+            println!("DEBUG: Current window size: {}x{}", current_size.width, current_size.height);
+        }
+
+        // スケールファクターを取得
+        let scale_factor = window.scale_factor().unwrap_or(1.0);
+        println!("DEBUG: Scale factor: {}", scale_factor);
+
+        // 引数は論理サイズとして扱う
+        let logical_width = width as f64;
+        let logical_height = height as f64;
+
+        println!("DEBUG: Setting logical size to {}x{} (scale factor: {})", logical_width, logical_height, scale_factor);
+
+        // 論理サイズで設定
+        if let Err(e) = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: logical_width, height: logical_height })) {
+            println!("DEBUG: Failed to set logical size: {}", e);
+            return Err(format!("Failed to set window size: {}", e));
+        }
+
+        // 少し待ってからサイズを確認
+        std::thread::sleep(std::time::Duration::from_millis(100));
+
+        // 変更後のサイズを確認
+        if let Ok(new_size) = window.inner_size() {
+            println!("DEBUG: New window size: {}x{}", new_size.width, new_size.height);
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn set_window_resizable(app: AppHandle, resizable: bool) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        if let Err(e) = window.set_resizable(resizable) {
+            println!("DEBUG: Failed to set window resizable: {}", e);
+            return Err(format!("Failed to set window resizable: {}", e));
+        }
+        println!("DEBUG: Window resizable set to: {}", resizable);
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn focus_window(app: AppHandle) -> Result<(), String> {
+    if let Some(window) = app.get_webview_window("main") {
+        if let Err(e) = window.set_focus() {
+            println!("DEBUG: Failed to focus window: {}", e);
+            return Err(format!("Failed to focus window: {}", e));
+        }
+        println!("DEBUG: Window focused");
+    }
+    Ok(())
+}
+
 
 fn main() {
     tauri::Builder::default()
@@ -115,7 +174,7 @@ fn main() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag, save_window_position])
+        .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag, save_window_position, set_window_size, set_window_resizable, focus_window])
         .on_window_event(|window, event| match event {
             WindowEvent::CloseRequested { .. } => {
                 // タイマー状態保存を促す

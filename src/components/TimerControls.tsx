@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useCallback } from "react";
 import { TimerControlsProps } from "../types";
 
 const TimerControls: React.FC<TimerControlsProps> = ({
@@ -65,63 +65,63 @@ const TimerControls: React.FC<TimerControlsProps> = ({
     [minutes, seconds, onBothChange]
   );
 
-  // キーボードイベントリスナー
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const key = event.key.toLowerCase();
+  // キーボードイベントリスナー（App.tsxで処理されるため無効化）
+  // useEffect(() => {
+  //   const handleKeyDown = (event: KeyboardEvent) => {
+  //     const key = event.key.toLowerCase();
 
-      // 数字キー（0-9）の処理
-      if (key >= "0" && key <= "9") {
-        // タイマーが実行中の場合はキーボード入力を無効化
-        if (isRunning) {
-          return;
-        }
-        event.preventDefault(); // デフォルトの動作を防ぐ
-        const number = parseInt(key, 10);
-        console.log("DEBUG: Keyboard input - key:", key, "number:", number);
-        handleNumberClick(number);
-      }
+  //     // 数字キー（0-9）の処理
+  //     if (key >= "0" && key <= "9") {
+  //       // タイマーが実行中の場合はキーボード入力を無効化
+  //       if (isRunning) {
+  //         return;
+  //       }
+  //       event.preventDefault(); // デフォルトの動作を防ぐ
+  //       const number = parseInt(key, 10);
+  //       console.log("DEBUG: Keyboard input - key:", key, "number:", number);
+  //       handleNumberClick(number);
+  //     }
 
-      // SキーでSTART/PAUSE
-      else if (key === "s") {
-        event.preventDefault();
-        console.log("DEBUG: Keyboard shortcut - S key pressed");
-        // 00:00の場合はStartを無効化
-        if (minutes === 0 && seconds === 0) {
-          console.log("DEBUG: Cannot start timer with 00:00");
-          return;
-        }
-        if (isRunning) {
-          onPause();
-        } else {
-          onStart();
-        }
-      }
+  //     // SキーでSTART/PAUSE
+  //     else if (key === "s") {
+  //       event.preventDefault();
+  //       console.log("DEBUG: Keyboard shortcut - S key pressed");
+  //       // 00:00の場合はStartを無効化
+  //       if (minutes === 0 && seconds === 0) {
+  //         console.log("DEBUG: Cannot start timer with 00:00");
+  //         return;
+  //       }
+  //       if (isRunning) {
+  //         onPause();
+  //       } else {
+  //         onStart();
+  //       }
+  //     }
 
-      // RキーでRESET
-      else if (key === "r") {
-        event.preventDefault();
-        console.log("DEBUG: Keyboard shortcut - R key pressed");
-        onReset();
-      }
-    };
+  //     // RキーでRESET
+  //     else if (key === "r") {
+  //       event.preventDefault();
+  //       console.log("DEBUG: Keyboard shortcut - R key pressed");
+  //       onReset();
+  //     }
+  //   };
 
-    // イベントリスナーを追加
-    document.addEventListener("keydown", handleKeyDown);
+  //   // イベントリスナーを追加
+  //   document.addEventListener("keydown", handleKeyDown);
 
-    // クリーンアップ
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [
-    handleNumberClick,
-    isRunning,
-    onStart,
-    onPause,
-    onReset,
-    minutes,
-    seconds,
-  ]);
+  //   // クリーンアップ
+  //   return () => {
+  //     document.removeEventListener("keydown", handleKeyDown);
+  //   };
+  // }, [
+  //   handleNumberClick,
+  //   isRunning,
+  //   onStart,
+  //   onPause,
+  //   onReset,
+  //   minutes,
+  //   seconds,
+  // ]);
   const handleMinutesUp = () => {
     onMinutesChange(Math.min(99, minutes + 1));
   };

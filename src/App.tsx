@@ -44,6 +44,7 @@ const App: React.FC = () => {
     darkMode: false,
     alarmSound: "alarm.mp3",
     alarmVolume: 0.8,
+    compactMode: false, // 常に通常モードで起動
   });
 
   // 設定の保存・読み込み
@@ -265,7 +266,7 @@ const App: React.FC = () => {
     }));
   }, []);
 
-  const resetTimer = () => {
+  const resetTimer = useCallback(() => {
     // リセット時に記憶もクリア
     setLastSetTime(null);
     setHasNumberBeenEdited(false);
@@ -278,7 +279,7 @@ const App: React.FC = () => {
       seconds: 0,
       timeRemaining: 0,
     }));
-  };
+  }, []);
 
   // F12キーでデベロッパーツールを開く
   useEffect(() => {
@@ -399,25 +400,114 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCompactModeToggle = useCallback(async () => {
+    const newCompactMode = !settings.compactMode;
+    const newSettings = { ...settings, compactMode: newCompactMode };
+    setSettings(newSettings);
+    // 簡易表示モードの状態は保存しない
+
+    // ウィンドウサイズを変更
+    if (isTauri()) {
+      try {
+        const width = newCompactMode ? 400 : 800;
+        const height = 200;
+        await invoke("set_window_size", { width, height });
+
+        // ウィンドウのリサイズを無効化
+        await invoke("set_window_resizable", { resizable: false });
+      } catch (error) {
+        console.error("Failed to set window size:", error);
+      }
+    }
+  }, [settings]);
+
   // キーボードイベントハンドラー
   const handleKeyDown = useCallback(
-    (event: KeyboardEvent) => {
+    async (event: KeyboardEvent) => {
+      const key = event.key.toLowerCase();
+
+      // 数字キー（0-9）の処理
+      if (key >= "0" && key <= "9") {
+        // タイマーが実行中の場合はキーボード入力を無効化
+        if (timerState.isRunning) {
+          return;
+        }
+        event.preventDefault();
+        const number = parseInt(key, 10);
+
+        // 現在の時間を取得
+        const currentMinutes = timerState.minutes;
+        const currentSeconds = timerState.seconds;
+
+        // 文字列操作による左シフト動作（TimerControls.tsxと同じロジック）
+        // 現在の分と秒を文字列として取得（例：00:02 → "0002"）
+        const currentTimeString = `${currentMinutes.toString().padStart(2, "0")}${currentSeconds
+          .toString()
+          .padStart(2, "0")}`;
+
+        // 左にシフトして新しい数字を右端に追加（例："0002" → "0020" → "0023"）
+        const shiftedString = currentTimeString.slice(1) + number.toString();
+
+        // 文字列を分と秒に変換（4文字であることを確認）
+        if (shiftedString.length === 4) {
+          const newMinutes = parseInt(shiftedString.slice(0, 2), 10);
+          const newSeconds = parseInt(shiftedString.slice(2, 4), 10);
+
+          // 両方の値を一度に更新
+          updateTimerBoth(newMinutes, newSeconds);
+        }
+      }
+
       // S、Space、EnterキーでSTART/PAUSE操作
-      if (
-        event.key === "s" ||
-        event.key === "S" ||
+      else if (
+        key === "s" ||
         event.key === " " ||
         event.key === "Enter"
       ) {
         event.preventDefault();
+        // 00:00の場合はStartを無効化
+        if (timerState.minutes === 0 && timerState.seconds === 0) {
+          return;
+        }
         if (timerState.isRunning) {
           pauseTimer();
         } else {
           startTimer();
         }
       }
+
+      // RキーでRESET
+      else if (key === "r") {
+        event.preventDefault();
+        resetTimer();
+      }
+
+      // Vキーで簡易表示モード切り替え
+      else if (key === "v") {
+        event.preventDefault();
+
+        // 現在の状態を直接取得して切り替え
+        const newCompactMode = !settings.compactMode;
+
+        const newSettings = { ...settings, compactMode: newCompactMode };
+        setSettings(newSettings);
+
+        // ウィンドウサイズを変更
+        if (isTauri()) {
+          try {
+            const width = newCompactMode ? 400 : 800;
+            const height = 200;
+            await invoke("set_window_size", { width, height });
+
+            // ウィンドウのリサイズを無効化
+            await invoke("set_window_resizable", { resizable: false });
+          } catch (error) {
+            console.error("Failed to set window size:", error);
+          }
+        }
+      }
     },
-    [timerState.isRunning, startTimer, pauseTimer]
+    [timerState, startTimer, pauseTimer, resetTimer, updateTimerBoth, settings]
   );
 
   // キーボードイベントリスナーの設定
@@ -430,7 +520,7 @@ const App: React.FC = () => {
 
   return (
     <div
-      className={`app ${settings.darkMode ? "dark" : "light"}`}
+      className={`app ${settings.darkMode ? "dark" : "light"} ${settings.compactMode ? "compact" : ""}`}
       onMouseDown={handleDragStart}
       onMouseUp={handleMouseUp}
     >
@@ -443,6 +533,15 @@ const App: React.FC = () => {
         <img src="/icon/power.svg" width="16" height="16" alt="Power" />
       </button>
 
+      {/* 簡易表示モード切り替えボタン */}
+      <button
+        className="compact-toggle-button"
+        onClick={handleCompactModeToggle}
+        title={settings.compactMode ? "通常表示に戻す" : "簡易表示モード"}
+      >
+        {settings.compactMode ? "⧉" : "⊡"}
+      </button>
+
       <div className="timer-container">
         <TimerDisplay
           minutes={timerState.minutes}
@@ -450,28 +549,30 @@ const App: React.FC = () => {
           isRunning={timerState.isRunning}
         />
 
-        <TimerControls
-          minutes={timerState.minutes}
-          seconds={timerState.seconds}
-          isRunning={timerState.isRunning}
-          onStart={startTimer}
-          onPause={pauseTimer}
-          onReset={resetTimer}
-          onSettings={() => setShowSettings(true)}
-          onMinutesChange={(minutes) =>
-            updateTimer(minutes, timerState.seconds)
-          }
-          onSecondsChange={(seconds) =>
-            updateTimer(timerState.minutes, seconds)
-          }
-          onBothChange={updateTimerBoth}
-          alarmVolume={settings.alarmVolume}
-          onAlarmVolumeChange={(volume) => {
-            const newSettings = { ...settings, alarmVolume: volume };
-            setSettings(newSettings);
-            saveSettings(newSettings);
-          }}
-        />
+        {!settings.compactMode && (
+          <TimerControls
+            minutes={timerState.minutes}
+            seconds={timerState.seconds}
+            isRunning={timerState.isRunning}
+            onStart={startTimer}
+            onPause={pauseTimer}
+            onReset={resetTimer}
+            onSettings={() => setShowSettings(true)}
+            onMinutesChange={(minutes) =>
+              updateTimer(minutes, timerState.seconds)
+            }
+            onSecondsChange={(seconds) =>
+              updateTimer(timerState.minutes, seconds)
+            }
+            onBothChange={updateTimerBoth}
+            alarmVolume={settings.alarmVolume}
+            onAlarmVolumeChange={(volume) => {
+              const newSettings = { ...settings, alarmVolume: volume };
+              setSettings(newSettings);
+              saveSettings(newSettings);
+            }}
+          />
+        )}
       </div>
 
       {showSettings && (
