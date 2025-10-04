@@ -201,7 +201,7 @@ button {
 
 .app.compact .timer-display {
   flex: none;
-  transform: scale(1.2);
+  transform: scale(1.6);
 }
 
 .timer-display {
@@ -229,12 +229,42 @@ button {
   text-shadow: 0 2px 8px var(--shadow);
   letter-spacing: 1px;
   margin-bottom: 3px;
+  width: 200px;
+  text-align: center;
 }
 
 /* ダークモード時のタイマー表示色（AS400風の緑色） */
 .dark .time {
   color: #00ff00;
   text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00;
+}
+
+/* TimeUP表示のスタイル */
+.timeup-text {
+  font-size: 2.2rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  color: #ff4444;
+  text-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
+  letter-spacing: 2px;
+  animation: timeupPulse 1s infinite;
+}
+
+/* ダークモード時のTimeUP表示 */
+.dark .timeup-text {
+  color: #ff6666;
+  text-shadow: 0 0 10px #ff6666, 0 0 20px #ff6666, 0 0 30px #ff6666;
+}
+
+@keyframes timeupPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
 }
 
 .minutes, .seconds {

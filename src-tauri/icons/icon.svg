@@ -1,8 +1,0 @@
-<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-  <rect width="128" height="128" rx="20" fill="#007acc"/>
-  <circle cx="64" cy="64" r="50" fill="none" stroke="white" stroke-width="4"/>
-  <circle cx="64" cy="64" r="4" fill="white"/>
-  <line x1="64" y1="64" x2="64" y2="30" stroke="white" stroke-width="3" stroke-linecap="round"/>
-  <line x1="64" y1="64" x2="90" y2="64" stroke="white" stroke-width="2" stroke-linecap="round"/>
-  <text x="64" y="100" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="12" font-weight="bold">TIMER</text>
-</svg>

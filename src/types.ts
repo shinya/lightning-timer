@@ -19,6 +19,7 @@ export interface TimerDisplayProps {
   minutes: number;
   seconds: number;
   isRunning: boolean;
+  showTimeUp?: boolean;
 }
 
 export interface TimerControlsProps {

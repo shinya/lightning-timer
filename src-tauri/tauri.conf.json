@@ -1,7 +1,7 @@
 {
   "productName": "Lightning Timer",
   "version": "0.1.0",
-  "identifier": "com.lightning-timer.dev",
+  "identifier": "com.pemomomo.lightning-timer",
   "build": {
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build",
@@ -41,6 +41,11 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "macOS": {
+      "frameworks": [],
+      "minimumSystemVersion": "10.13",
+      "exceptionDomain": "localhost"
+    }
   }
 }

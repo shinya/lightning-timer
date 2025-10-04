@@ -48,6 +48,9 @@ const App: React.FC = () => {
     showTimeUpWindow: true, // デフォルトでTime Up画面を表示
   });
 
+  // TimeUP表示の状態管理
+  const [showTimeUp, setShowTimeUp] = useState(false);
+
   // ポート動的設定
   const setupPort = useCallback(async () => {
     if (!isTauri()) return 1420; // 開発時は固定ポート
@@ -152,6 +155,9 @@ const App: React.FC = () => {
           const newTimeRemaining = prev.timeRemaining - 1;
           if (newTimeRemaining <= 0) {
             // タイマー終了
+            // TimeUP表示を有効化
+            setShowTimeUp(true);
+
             // 音声再生を開始
             playAlarm().then(() => {
               console.log("DEBUG: Alarm sound started successfully");
@@ -232,6 +238,9 @@ const App: React.FC = () => {
 
   const updateTimerBoth = useCallback(
     async (minutes: number, seconds: number) => {
+      // TimeUP表示を消す
+      setShowTimeUp(false);
+
       const totalSeconds = minutes * 60 + seconds;
       console.log(
         "DEBUG: updateTimerBoth called with:",
@@ -277,6 +286,9 @@ const App: React.FC = () => {
   );
 
   const startTimer = useCallback(() => {
+    // TimeUP表示を消す
+    setShowTimeUp(false);
+
     // 数字が編集されていた場合のみ、現在の時間を記憶
     if (hasNumberBeenEdited) {
       setLastSetTime({
@@ -310,6 +322,9 @@ const App: React.FC = () => {
   }, []);
 
   const resetTimer = useCallback(() => {
+    // TimeUP表示を消す
+    setShowTimeUp(false);
+
     // リセット時に記憶もクリア
     setLastSetTime(null);
     setHasNumberBeenEdited(false);
@@ -424,6 +439,9 @@ const App: React.FC = () => {
   };
 
   const handleDragStart = async (event: React.MouseEvent) => {
+    // マウス操作でTimeUP表示を消す
+    setShowTimeUp(false);
+
     // 操作可能な要素（ボタン、スライダー、入力要素など）でのドラッグ開始を防ぐ
     const target = event.target as HTMLElement;
     const isInteractiveElement = target.closest('button, input, select, .volume-slider, .volume-control-container, .settings-overlay');
@@ -477,6 +495,9 @@ const App: React.FC = () => {
   const handleKeyDown = useCallback(
     async (event: KeyboardEvent) => {
       const key = event.key.toLowerCase();
+
+      // キーボード入力でTimeUP表示を消す
+      setShowTimeUp(false);
 
       // 数字キー（0-9）の処理
       if (key >= "0" && key <= "9") {
@@ -641,6 +662,7 @@ const App: React.FC = () => {
           minutes={timerState.minutes}
           seconds={timerState.seconds}
           isRunning={timerState.isRunning}
+          showTimeUp={showTimeUp}
         />
 
         {!settings.compactMode && (
