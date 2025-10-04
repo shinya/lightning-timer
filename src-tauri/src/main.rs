@@ -200,54 +200,99 @@ async fn get_available_port() -> Result<u16, String> {
 
 #[tauri::command]
 async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
-    match app.get_webview_window("timeup") {
-        Some(window) => {
-            // 既にウィンドウが存在する場合は表示する
-            println!("DEBUG: Time Up window already exists, showing");
-            window.show().map_err(|e| {
-                println!("DEBUG: Failed to show existing window: {}", e);
-                format!("Failed to show Time Up window: {}", e)
-            })?;
-            window.set_focus().map_err(|e| {
-                println!("DEBUG: Failed to focus window: {}", e);
-                format!("Failed to focus Time Up window: {}", e)
-            })?;
-            Ok(())
-        }
-        None => {
-            // 新しいTime Upウィンドウを作成（メインディスプレイの全画面表示）
-            let _window = tauri::WebviewWindowBuilder::new(
-                &app,
-                "timeup",
-                tauri::WebviewUrl::App("timeup.html".into())
-            )
-            .title("Time Up!!")
-            .fullscreen(true) // 全画面表示
-            .resizable(false)
-            .decorations(false)
-            .always_on_top(true)
-            .visible(true) // 明示的に可視化
-            .build()
-            .map_err(|e| format!("Failed to create Time Up window: {}", e))?;
+    println!("DEBUG: show_timeup_window called");
 
-            println!("DEBUG: Time Up window created in fullscreen mode");
+    // 既存のウィンドウがあれば表示する、なければ新規作成
+    if let Some(existing_window) = app.get_webview_window("timeup") {
+        println!("DEBUG: Showing existing Time Up window");
+
+        // ウィンドウ表示前にisClosingフラグをリセット
+        let _ = existing_window.eval("
+            console.log('Resetting isClosing flag...');
+            if (typeof isClosing !== 'undefined') {
+                isClosing = false;
+                console.log('isClosing flag reset to false');
+            } else {
+                console.log('isClosing variable not found');
+            }
+        ");
+
+        if let Err(e) = existing_window.show() {
+            println!("DEBUG: Failed to show existing window: {}", e);
+            return Err(format!("Failed to show existing Time Up window: {}", e));
+        }
+        if let Err(e) = existing_window.set_focus() {
+            println!("DEBUG: Failed to focus existing window: {}", e);
+            return Err(format!("Failed to focus existing Time Up window: {}", e));
+        }
+        println!("DEBUG: Existing Time Up window shown and focused");
+        return Ok(());
+    }
+
+    // 新しいウィンドウを作成
+    println!("DEBUG: Creating new Time Up window");
+
+    // 画面サイズを取得（論理サイズを使用）
+    let screen_size = if let Some(main_window) = app.get_webview_window("main") {
+        if let Ok(monitor) = main_window.primary_monitor() {
+            if let Some(monitor) = monitor {
+                let size = monitor.size();
+                let scale_factor = monitor.scale_factor();
+                // 論理サイズを計算（物理サイズ / スケールファクター）
+                let logical_width = size.width as f64 / scale_factor;
+                let logical_height = size.height as f64 / scale_factor;
+                println!("DEBUG: Physical size: {}x{}, Scale factor: {}, Logical size: {}x{}",
+                        size.width, size.height, scale_factor, logical_width, logical_height);
+                (logical_width, logical_height)
+            } else {
+                println!("DEBUG: No primary monitor found, using default size");
+                (1920.0, 1080.0)
+            }
+        } else {
+            println!("DEBUG: Failed to get primary monitor, using default size");
+            (1920.0, 1080.0)
+        }
+    } else {
+        println!("DEBUG: No main window found, using default size");
+        (1920.0, 1080.0)
+    };
+
+    // 新しいTime Upウィンドウを作成（画面サイズに合わせて表示）
+    match tauri::WebviewWindowBuilder::new(
+        &app,
+        "timeup",
+        tauri::WebviewUrl::App("timeup.html".into())
+    )
+    .title("Time Up!!")
+    .inner_size(screen_size.0, screen_size.1) // 画面サイズに合わせる
+    .resizable(false)
+    .decorations(false) // ウィンドウバー非表示
+    .always_on_top(true)
+    .visible(true) // 明示的に可視化
+    .build() {
+        Ok(_window) => {
+            println!("DEBUG: Time Up window created with screen size");
 
             // ウィンドウを確実に表示
             if let Some(window) = app.get_webview_window("timeup") {
-                window.show().map_err(|e| {
+                if let Err(e) = window.show() {
                     println!("DEBUG: Failed to show window: {}", e);
-                    format!("Failed to show Time Up window: {}", e)
-                })?;
-                window.set_focus().map_err(|e| {
+                    return Err(format!("Failed to show Time Up window: {}", e));
+                }
+                if let Err(e) = window.set_focus() {
                     println!("DEBUG: Failed to focus window: {}", e);
-                    format!("Failed to focus Time Up window: {}", e)
-                })?;
+                    return Err(format!("Failed to focus Time Up window: {}", e));
+                }
                 println!("DEBUG: Time Up window shown and focused");
             }
-
-            Ok(())
+        }
+        Err(e) => {
+            println!("DEBUG: Failed to create Time Up window: {}", e);
+            return Err(format!("Failed to create Time Up window: {}", e));
         }
     }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -257,12 +302,7 @@ async fn hide_timeup_window(app: AppHandle) -> Result<(), String> {
         println!("DEBUG: Found timeup window, attempting to hide");
         // ウィンドウを閉じる代わりに非表示にする
         if window.label() == "timeup" {
-            // 全画面モードを解除してから非表示にする
-            window.set_fullscreen(false).map_err(|e| {
-                println!("DEBUG: Failed to exit fullscreen: {}", e);
-                format!("Failed to exit fullscreen: {}", e)
-            })?;
-
+            // ウィンドウを非表示にする
             window.hide().map_err(|e| {
                 println!("DEBUG: Failed to hide window: {}", e);
                 format!("Failed to hide Time Up window: {}", e)

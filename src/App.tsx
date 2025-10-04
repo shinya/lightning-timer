@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Store } from "@tauri-apps/plugin-store";
@@ -100,6 +100,7 @@ const App: React.FC = () => {
     seconds: number;
   } | null>(null);
   const [hasNumberBeenEdited, setHasNumberBeenEdited] = useState(false);
+  const timeUpWindowShownRef = useRef(false);
 
   const loadTimerState = useCallback(async () => {
     if (!isTauri()) return;
@@ -127,13 +128,17 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const playAlarm = useCallback(() => {
+  const playAlarm = useCallback(async () => {
     // 選択されたアラーム音ファイルを再生
     const audio = new Audio(`/sounds/${settings.alarmSound}`);
     audio.volume = settings.alarmVolume;
-    audio.play().catch((error) => {
+
+    try {
+      await audio.play();
+      console.log("DEBUG: Alarm sound started playing");
+    } catch (error) {
       console.error("Failed to play alarm sound:", error);
-    });
+    }
   }, [settings.alarmSound, settings.alarmVolume]);
 
   // タイマー状態の保存・読み込み
@@ -146,13 +151,24 @@ const App: React.FC = () => {
           const newTimeRemaining = prev.timeRemaining - 1;
           if (newTimeRemaining <= 0) {
             // タイマー終了
-            playAlarm();
+            // 音声再生を開始
+            playAlarm().then(() => {
+              console.log("DEBUG: Alarm sound started successfully");
+            }).catch((error) => {
+              console.error("Failed to start alarm sound:", error);
+            });
 
-            // Time Upウィンドウを表示
-            if (isTauri()) {
-              invoke("show_timeup_window").catch((error) => {
-                console.error("Failed to show Time Up window:", error);
-              });
+            // 音声再生開始後、少し遅延してからウィンドウを表示（重複実行を防ぐ）
+            if (!timeUpWindowShownRef.current) {
+              timeUpWindowShownRef.current = true;
+              setTimeout(() => {
+                if (isTauri()) {
+                  console.log("DEBUG: Calling show_timeup_window");
+                  invoke("show_timeup_window").catch((error) => {
+                    console.error("Failed to show Time Up window:", error);
+                  });
+                }
+              }, 100); // 100ms遅延で音声再生を優先
             }
 
             // 最後に設定した時間があれば復元
@@ -274,6 +290,8 @@ const App: React.FC = () => {
         timerState.seconds
       );
     }
+
+    // タイマー開始時の処理（フラグ管理を削除）
 
     setTimerState((prev) => ({
       ...prev,
@@ -557,9 +575,13 @@ const App: React.FC = () => {
       console.log('Received message:', event.data);
       if (event.data?.action === 'closeTimeUpWindow') {
         console.log('Received closeTimeUpWindow message');
+        timeUpWindowShownRef.current = false; // フラグをリセット
         if (isTauri()) {
           // Time Upウィンドウのみを閉じる
-          invoke("hide_timeup_window").catch((error) => {
+          console.log('DEBUG: Calling hide_timeup_window');
+          invoke("hide_timeup_window").then(() => {
+            console.log('DEBUG: hide_timeup_window successful');
+          }).catch((error) => {
             console.error("Failed to hide Time Up window:", error);
           });
         }
@@ -570,6 +592,7 @@ const App: React.FC = () => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'closeTimeUpWindow') {
         console.log('Received localStorage closeTimeUpWindow signal');
+        timeUpWindowShownRef.current = false; // フラグをリセット
         if (isTauri()) {
           // Time Upウィンドウのみを閉じる
           invoke("hide_timeup_window").catch((error) => {

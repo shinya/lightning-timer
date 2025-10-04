@@ -77,7 +77,7 @@
         }
     </style>
 </head>
-<body onclick="closeWindow()">
+<body onclick="console.log('Body clicked!'); closeWindow()">
     <div class="timeup-container">
         <div class="timeup-text">Time Up!!</div>
         <div class="timeup-subtitle">タイマー終了</div>
@@ -85,69 +85,61 @@
     </div>
 
     <script>
+        // 重複実行を防ぐフラグ
+        let isClosing = false;
+
         // Escキーでウィンドウを閉じる
         document.addEventListener('keydown', function(event) {
+            console.log('Key pressed:', event.key);
             if (event.key === 'Escape') {
+                console.log('Escape key detected!');
                 closeWindow();
             }
         });
 
-        // ウィンドウを非表示にする関数
-        function closeWindow() {
-            console.log('closeWindow called - hiding window');
+               // ウィンドウを非表示にする関数
+               function closeWindow() {
+                   if (isClosing) {
+                       console.log('Already closing, ignoring duplicate call');
+                       return;
+                   }
+                   isClosing = true;
 
-            // メインウィンドウにメッセージを送信（複数の方法）
-            try {
-                console.log('Sending message to main window');
+                   console.log('=== closeWindow function called ===');
+                   console.log('closeWindow called - hiding window');
 
-                // 方法1: window.opener
-                if (window.opener) {
-                    console.log('Using window.opener');
-                    window.opener.postMessage({ action: 'closeTimeUpWindow' }, '*');
-                }
+                   // メインウィンドウにメッセージを送信
+                   try {
+                       console.log('Sending message to main window');
 
-                // 方法2: parent
-                if (window.parent && window.parent !== window) {
-                    console.log('Using window.parent');
-                    window.parent.postMessage({ action: 'closeTimeUpWindow' }, '*');
-                }
+                       // localStorage経由でメッセージ送信
+                       localStorage.setItem('closeTimeUpWindow', Date.now().toString());
+                       console.log('Set localStorage flag');
 
-                // 方法3: top
-                if (window.top && window.top !== window) {
-                    console.log('Using window.top');
-                    window.top.postMessage({ action: 'closeTimeUpWindow' }, '*');
-                }
+                       // window.opener経由でメッセージ送信（フォールバック）
+                       if (window.opener) {
+                           console.log('Using window.opener');
+                           window.opener.postMessage({ action: 'closeTimeUpWindow' }, '*');
+                           console.log('Message sent via window.opener');
+                       }
 
-                // 方法4: localStorage経由
-                try {
-                    localStorage.setItem('closeTimeUpWindow', Date.now().toString());
-                    console.log('Set localStorage flag');
-                } catch (e) {
-                    console.error('Failed to set localStorage:', e);
-                }
+                   } catch (error) {
+                       console.error('Failed to send message to main window:', error);
+                   }
 
-            } catch (error) {
-                console.error('Failed to send message to main window:', error);
-            }
-
-            // Tauri APIが利用可能な場合のみ使用（非表示処理）
-            if (window.__TAURI__) {
-                console.log('Tauri API available, using Tauri hide');
-                window.__TAURI__.core.invoke('hide_timeup_window')
-                    .then(() => {
-                        console.log('Tauri window hide successful');
-                    })
-                    .catch((error) => {
-                        console.error('Tauri window hide failed:', error);
-                    });
-            } else {
-                console.log('Tauri API not available, relying on main window to hide');
-            }
-        }
+                   // フラグをリセット（確実に次回も動作するように）
+                   setTimeout(() => {
+                       isClosing = false;
+                       console.log('isClosing flag reset after timeout');
+                   }, 100);
+               }
 
         // ページ読み込み完了時の処理
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Time Up window loaded');
+
+            // フラグをリセット
+            isClosing = false;
 
             // Tauri APIの初期化を待つ
             if (window.__TAURI__) {
@@ -160,15 +152,15 @@
                         console.log('Tauri API now available');
                         clearInterval(checkTauri);
                     }
-                }, 100);
+                }, 50); // より頻繁にチェック
 
-                // 5秒後にタイムアウト
+                // 2秒後にタイムアウト
                 setTimeout(() => {
                     clearInterval(checkTauri);
                     if (!window.__TAURI__) {
                         console.error('Tauri API not available after timeout');
                     }
-                }, 5000);
+                }, 2000); // タイムアウトを短縮
             }
         });
     </script>
