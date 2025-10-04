@@ -45,6 +45,7 @@ const App: React.FC = () => {
     alarmSound: "alarm.mp3",
     alarmVolume: 0.8,
     compactMode: false, // 常に通常モードで起動
+    showTimeUpWindow: true, // デフォルトでTime Up画面を表示
   });
 
   // ポート動的設定
@@ -158,8 +159,8 @@ const App: React.FC = () => {
               console.error("Failed to start alarm sound:", error);
             });
 
-            // 音声再生開始後、少し遅延してからウィンドウを表示（重複実行を防ぐ）
-            if (!timeUpWindowShownRef.current) {
+            // 音声再生開始後、設定に応じてウィンドウを表示（重複実行を防ぐ）
+            if (!timeUpWindowShownRef.current && settings.showTimeUpWindow) {
               timeUpWindowShownRef.current = true;
               setTimeout(() => {
                 if (isTauri()) {
@@ -205,7 +206,7 @@ const App: React.FC = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [timerState.isRunning, timerState.timeRemaining, lastSetTime, playAlarm]);
+  }, [timerState.isRunning, timerState.timeRemaining, lastSetTime, playAlarm, settings.showTimeUpWindow]);
 
   const updateTimer = useCallback((minutes: number, seconds: number) => {
     const totalSeconds = minutes * 60 + seconds;

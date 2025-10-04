@@ -594,10 +594,37 @@ button {
   border-radius: 4px;
   border: 1px solid var(--border);
   transition: all 0.2s ease;
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.setting-item.checkbox-group {
+  flex: 2;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-group-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  width: fit-content;
+}
+
+.setting-item.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.setting-item.alarm-sound-selector {
+  flex: 1;
 }
 
 .setting-item:hover {
@@ -617,6 +644,10 @@ button {
   justify-content: center;
 }
 
+.setting-item.checkbox-group label {
+  justify-content: flex-start !important;
+}
+
 .setting-item input[type="checkbox"] {
   width: 20px;
   height: 20px;
@@ -630,6 +661,41 @@ button {
   flex-direction: column;
   align-items: flex-start;
   gap: 8px;
+}
+
+.alarm-sound-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.alarm-sound-select {
+  flex: 1;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  min-width: 0;
+}
+
+.test-sound-btn {
+  padding: 6px 12px;
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+}
+
+.test-sound-btn:hover {
+  background-color: var(--accent-hover);
 }
 
 .alarm-sound-selector label {

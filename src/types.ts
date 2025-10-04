@@ -12,6 +12,7 @@ export interface Settings {
   alarmSound: string;
   alarmVolume: number;
   compactMode: boolean;
+  showTimeUpWindow: boolean;
 }
 
 export interface TimerDisplayProps {

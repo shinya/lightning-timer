@@ -217,6 +217,11 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
             }
         ");
 
+        // ウィンドウをプライマリモニターの左上角に移動
+        if let Err(e) = existing_window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x: 0.0, y: 0.0 })) {
+            println!("DEBUG: Failed to set window position: {}", e);
+        }
+
         if let Err(e) = existing_window.show() {
             println!("DEBUG: Failed to show existing window: {}", e);
             return Err(format!("Failed to show existing Time Up window: {}", e));
@@ -232,7 +237,7 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
     // 新しいウィンドウを作成
     println!("DEBUG: Creating new Time Up window");
 
-    // 画面サイズを取得（論理サイズを使用）
+    // 画面サイズを取得（プライマリモニターの論理サイズを使用）
     let screen_size = if let Some(main_window) = app.get_webview_window("main") {
         if let Ok(monitor) = main_window.primary_monitor() {
             if let Some(monitor) = monitor {
@@ -257,14 +262,15 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
         (1920.0, 1080.0)
     };
 
-    // 新しいTime Upウィンドウを作成（画面サイズに合わせて表示）
+    // 新しいTime Upウィンドウを作成（プライマリモニターの画面サイズに合わせて表示）
     match tauri::WebviewWindowBuilder::new(
         &app,
         "timeup",
         tauri::WebviewUrl::App("timeup.html".into())
     )
     .title("Time Up!!")
-    .inner_size(screen_size.0, screen_size.1) // 画面サイズに合わせる
+    .inner_size(screen_size.0, screen_size.1) // プライマリモニターの画面サイズに合わせる
+    .position(0.0, 0.0) // プライマリモニターの左上角に配置
     .resizable(false)
     .decorations(false) // ウィンドウバー非表示
     .always_on_top(true)
