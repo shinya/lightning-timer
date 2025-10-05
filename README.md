@@ -38,7 +38,39 @@ npm run tauri:dev
 
 ## Building
 
-To build the application:
+### macOS Universal Build
+
+To build a universal macOS application (Intel + Apple Silicon):
+
+```bash
+npm run tauri:build:universal
+```
+
+### Windows Build
+
+To build a Windows executable from macOS:
+
+1. Install required tools:
+
+   ```bash
+   brew install mingw-w64 llvm nsis
+   ```
+
+2. Run the Windows build script:
+
+   ```bash
+   npm run build:windows
+   ```
+
+   Or manually:
+
+   ```bash
+   npm run tauri:build:windows
+   ```
+
+### Standard Build
+
+To build the application for your current platform:
 
 ```bash
 npm run tauri:build

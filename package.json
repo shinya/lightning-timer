@@ -13,7 +13,9 @@
     "pre-dev": "npm run type-check && npm run lint",
     "tauri:dev": "npm run pre-dev && tauri dev",
     "tauri:build": "npm run pre-dev && tauri build",
-    "tauri:build:universal": "npm run pre-dev && tauri build --target universal-apple-darwin"
+    "tauri:build:universal": "npm run pre-dev && tauri build --target universal-apple-darwin",
+    "tauri:build:windows": "npm run pre-dev && tauri build --target x86_64-pc-windows-gnu",
+    "build:windows": "./script/build-windows.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
