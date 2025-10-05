@@ -15,7 +15,9 @@
     "tauri:build": "npm run pre-dev && tauri build",
     "tauri:build:universal": "npm run pre-dev && tauri build --target universal-apple-darwin",
     "tauri:build:windows": "npm run pre-dev && tauri build --target x86_64-pc-windows-gnu",
-    "build:windows": "./script/build-windows.sh"
+    "build:windows": "./script/build-windows.sh",
+    "build:macos:notarized": "./script/build-macos-notarized.sh",
+    "verify:app": "./script/verify-app.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",

@@ -45,7 +45,10 @@
     "macOS": {
       "frameworks": [],
       "minimumSystemVersion": "10.13",
-      "exceptionDomain": "localhost"
+      "exceptionDomain": "localhost",
+      "signingIdentity": "Developer ID Application: SHINYA SAITA (RNGXZZHG98)",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.plist"
     }
   }
 }

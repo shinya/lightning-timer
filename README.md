@@ -46,6 +46,43 @@ To build a universal macOS application (Intel + Apple Silicon):
 npm run tauri:build:universal
 ```
 
+### macOS Notarized Build
+
+To build a notarized macOS application (passes Gatekeeper):
+
+**Prerequisites:**
+
+- Apple Developer Program account
+- Developer ID Application certificate installed
+- App-specific password for your Apple ID
+
+**Setup:**
+
+1. Copy the environment template:
+
+   ```bash
+   cp env.notarization.example .env.notarization
+   ```
+
+2. Edit `.env.notarization` with your credentials:
+
+   ```bash
+   APPLE_ID="your-apple-id@example.com"
+   APPLE_PASSWORD="your-app-specific-password"
+   APPLE_TEAM_ID="YOUR_TEAM_ID"
+   ```
+
+3. Load environment variables:
+
+   ```bash
+   source .env.notarization
+   ```
+
+4. Build notarized application:
+   ```bash
+   npm run build:macos:notarized
+   ```
+
 ### Windows Build
 
 To build a Windows executable from macOS:
