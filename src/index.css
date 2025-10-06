@@ -1,3 +1,12 @@
+/* フォントの定義 */
+@font-face {
+  font-family: 'MesloPowerline';
+  src: url('/fonts/Meslo-LG-S-Regular-for-Powerline.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -5,7 +14,7 @@
 }
 
 :root {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -224,7 +233,7 @@ button {
 .time {
   font-size: 2.2rem;
   font-weight: 700;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-family: 'MesloPowerline', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
   color: var(--accent);
   text-shadow: 0 2px 8px var(--shadow);
   letter-spacing: 1px;
@@ -243,7 +252,7 @@ button {
 .timeup-text {
   font-size: 2.2rem;
   font-weight: 700;
-  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  font-family: 'MesloPowerline', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
   color: #ff4444;
   text-shadow: 0 2px 8px rgba(255, 68, 68, 0.3);
   letter-spacing: 2px;
