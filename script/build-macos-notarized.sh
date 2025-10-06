@@ -68,7 +68,7 @@ rm -f src-tauri/tauri.conf.json.tmp
 
 # ビルド成果物の確認
 APP_PATH="src-tauri/target/universal-apple-darwin/release/bundle/macos/Lightning Timer.app"
-DMG_PATH="src-tauri/target/universal-apple-darwin/release/bundle/dmg/Lightning Timer_0.1.0_universal.dmg"
+DMG_PATH="src-tauri/target/universal-apple-darwin/release/bundle/dmg/Lightning Timer_0.1.1_universal.dmg"
 
 if [ ! -d "$APP_PATH" ]; then
     echo "アプリケーションファイルが見つかりません: $APP_PATH"
