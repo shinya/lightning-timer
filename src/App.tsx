@@ -8,27 +8,16 @@ import Settings from "./components/Settings";
 import { TimerState, Settings as SettingsType } from "./types";
 
 const App: React.FC = () => {
-  // デバッグ: Tauri APIの状態を確認
+  // Tauri APIの状態を確認
   useEffect(() => {
-    console.log("DEBUG: Tauri API check");
-    console.log(
-      "DEBUG: window.__TAURI__:",
-      (window as unknown as { __TAURI__?: unknown }).__TAURI__
-    );
-    console.log("DEBUG: invoke function:", invoke);
+    // Tauri APIの初期化確認
   }, []);
 
   // ウィンドウ状態の復元と保存（プラグインが自動処理するため無効化）
   useEffect(() => {
     if (!isTauri()) return;
 
-    console.log(
-      "DEBUG: Window state plugin should handle restoration automatically"
-    );
-
     // プラグインが自動的に復元・保存を処理するため、手動処理は無効化
-    // デバッグ用にログのみ出力
-    console.log("DEBUG: Relying on plugin automatic restoration");
   }, []);
 
   const [timerState, setTimerState] = useState<TimerState>({
@@ -59,7 +48,6 @@ const App: React.FC = () => {
       // 製品ビルド時のみ動的ポート取得
       // 開発時は1420番ポートを使用
       const port = await invoke("get_available_port");
-      console.log("DEBUG: Using dynamic port:", port);
       return port;
     } catch (error) {
       console.error("Failed to get available port:", error);
@@ -76,7 +64,6 @@ const App: React.FC = () => {
       const savedSettings = await settings.get<SettingsType>("settings");
       if (savedSettings) {
         setSettings(savedSettings);
-        console.log("DEBUG: Settings loaded:", savedSettings);
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -90,7 +77,6 @@ const App: React.FC = () => {
       const settings = await Store.load("settings.json");
       await settings.set("settings", newSettings);
       await settings.save();
-      console.log("DEBUG: Settings saved:", newSettings);
     } catch (error) {
       console.error("Failed to save settings:", error);
     }
@@ -125,7 +111,6 @@ const App: React.FC = () => {
           timeRemaining: savedTimerData.minutes * 60 + savedTimerData.seconds,
         }));
         setLastSetTime(savedTimerData.lastSetTime);
-        console.log("DEBUG: Timer state loaded:", savedTimerData);
       }
     } catch (error) {
       console.error("Failed to load timer state:", error);
@@ -139,7 +124,6 @@ const App: React.FC = () => {
 
     try {
       await audio.play();
-      console.log("DEBUG: Alarm sound started playing");
     } catch (error) {
       console.error("Failed to play alarm sound:", error);
     }
@@ -159,9 +143,7 @@ const App: React.FC = () => {
             setShowTimeUp(true);
 
             // 音声再生を開始
-            playAlarm().then(() => {
-              console.log("DEBUG: Alarm sound started successfully");
-            }).catch((error) => {
+            playAlarm().catch((error) => {
               console.error("Failed to start alarm sound:", error);
             });
 
@@ -170,7 +152,6 @@ const App: React.FC = () => {
               timeUpWindowShownRef.current = true;
               setTimeout(() => {
                 if (isTauri()) {
-                  console.log("DEBUG: Calling show_timeup_window");
                   invoke("show_timeup_window").catch((error) => {
                     console.error("Failed to show Time Up window:", error);
                   });
@@ -216,14 +197,6 @@ const App: React.FC = () => {
 
   const updateTimer = useCallback((minutes: number, seconds: number) => {
     const totalSeconds = minutes * 60 + seconds;
-    console.log(
-      "DEBUG: updateTimer called with:",
-      minutes,
-      ":",
-      seconds,
-      "total:",
-      totalSeconds
-    );
     setTimerState((prev) => {
       const newState = {
         ...prev,
@@ -231,7 +204,6 @@ const App: React.FC = () => {
         seconds,
         timeRemaining: totalSeconds,
       };
-      console.log("DEBUG: updateTimer new state:", newState);
       return newState;
     });
   }, []);
@@ -242,14 +214,6 @@ const App: React.FC = () => {
       setShowTimeUp(false);
 
       const totalSeconds = minutes * 60 + seconds;
-      console.log(
-        "DEBUG: updateTimerBoth called with:",
-        minutes,
-        ":",
-        seconds,
-        "total:",
-        totalSeconds
-      );
 
       // 数字が編集されたことを記録
       setHasNumberBeenEdited(true);
@@ -261,7 +225,6 @@ const App: React.FC = () => {
           seconds,
           timeRemaining: totalSeconds,
         };
-        console.log("DEBUG: updateTimerBoth new state:", newState);
         return newState;
       });
 
@@ -276,7 +239,6 @@ const App: React.FC = () => {
           };
           await settings.set("timer", timerData);
           await settings.save();
-          console.log("DEBUG: Timer state saved immediately:", timerData);
         } catch (error) {
           console.error("Failed to save timer state immediately:", error);
         }
@@ -296,12 +258,6 @@ const App: React.FC = () => {
         seconds: timerState.seconds,
       });
       setHasNumberBeenEdited(false); // フラグをリセット
-      console.log(
-        "DEBUG: Last set time saved:",
-        timerState.minutes,
-        ":",
-        timerState.seconds
-      );
     }
 
     // タイマー開始時の処理（フラグ管理を削除）
@@ -345,9 +301,6 @@ const App: React.FC = () => {
       if (event.key === "F12") {
         event.preventDefault();
         if (!isTauri()) {
-          console.log(
-            "DEBUG: Not running in Tauri environment, cannot open devtools"
-          );
           return;
         }
         try {
@@ -367,9 +320,6 @@ const App: React.FC = () => {
   // アプリ起動時に設定とタイマー状態を読み込み
   useEffect(() => {
     const initializeApp = async () => {
-      // ポート設定
-      const port = await setupPort();
-      console.log("DEBUG: App initialized with port:", port);
 
       // 設定読み込み
       await loadSettings();
@@ -393,7 +343,6 @@ const App: React.FC = () => {
           };
           await settings.set("timer", timerData);
           await settings.save();
-          console.log("DEBUG: Timer state saved on exit:", timerData);
         } catch (error) {
           console.error("Failed to save timer state on exit:", error);
         }
@@ -415,7 +364,6 @@ const App: React.FC = () => {
         try {
           const currentWindow = getCurrentWindow();
           await currentWindow.setAlwaysOnTop(newSettings.alwaysOnTop);
-          console.log("DEBUG: Always on top set to:", newSettings.alwaysOnTop);
         } catch (error) {
           console.error("Failed to set always on top:", error);
         }
@@ -594,16 +542,11 @@ const App: React.FC = () => {
   // Time Upウィンドウからのメッセージリスナー
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      console.log('Received message:', event.data);
       if (event.data?.action === 'closeTimeUpWindow') {
-        console.log('Received closeTimeUpWindow message');
         timeUpWindowShownRef.current = false; // フラグをリセット
         if (isTauri()) {
           // Time Upウィンドウのみを閉じる
-          console.log('DEBUG: Calling hide_timeup_window');
-          invoke("hide_timeup_window").then(() => {
-            console.log('DEBUG: hide_timeup_window successful');
-          }).catch((error) => {
+          invoke("hide_timeup_window").catch((error) => {
             console.error("Failed to hide Time Up window:", error);
           });
         }
@@ -613,7 +556,6 @@ const App: React.FC = () => {
     // localStorage監視
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'closeTimeUpWindow') {
-        console.log('Received localStorage closeTimeUpWindow signal');
         timeUpWindowShownRef.current = false; // フラグをリセット
         if (isTauri()) {
           // Time Upウィンドウのみを閉じる

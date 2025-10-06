@@ -141,6 +141,7 @@ npm run tauri:build
 - **Styling**: CSS with CSS Variables for theming
 - **Audio**: Web Audio API for alarm generation
 - **Linting**: ESLint + TypeScript strict mode
+- **Fonts**: Meslo LG S Regular for Powerline (Apache License 2.0) for timer display
 
 ## Project Structure
 
@@ -162,6 +163,19 @@ src-tauri/
 ├── Cargo.toml          # Rust dependencies
 └── tauri.conf.json     # Tauri configuration
 ```
+
+## Third-Party Components
+
+### Fonts
+
+This application uses the **Meslo LG S Regular for Powerline** font for the timer display.
+
+- **Source**: [Powerline Fonts](https://github.com/powerline/fonts)
+- **License**: Apache License 2.0
+- **Usage**: Timer numerical display for improved readability and monospace consistency
+- **Font File**: `public/fonts/Meslo-LG-S-Regular-for-Powerline.woff`
+
+The font is embedded in the application to ensure consistent display across different operating systems and to avoid dependency on system fonts.
 
 ## License
 

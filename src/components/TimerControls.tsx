@@ -26,37 +26,19 @@ const TimerControls: React.FC<TimerControlsProps> = ({
       // 左にシフトして新しい数字を右端に追加（例："0002" → "0020" → "0023"）
       const shiftedString = currentTimeString.slice(1) + number.toString();
 
-      // デバッグ用ログ
-      console.log("DEBUG: Current time:", minutes, ":", seconds);
-      console.log("DEBUG: Current time string:", currentTimeString);
-      console.log("DEBUG: Shifted string:", shiftedString);
-      console.log("DEBUG: Clicked number:", number);
 
       // 文字列を分と秒に変換（4文字であることを確認）
       if (shiftedString.length === 4) {
         const newMinutes = parseInt(shiftedString.slice(0, 2), 10);
         const newSeconds = parseInt(shiftedString.slice(2, 4), 10);
 
-        console.log(
-          "DEBUG: New minutes:",
-          newMinutes,
-          "New seconds:",
-          newSeconds
-        );
 
         // 両方の値を一度に更新
         onBothChange(newMinutes, newSeconds);
 
-        // デバッグ用：更新後の確認
-        console.log(
-          "DEBUG: After update - minutes:",
-          newMinutes,
-          "seconds:",
-          newSeconds
-        );
       } else {
         console.error(
-          "DEBUG: Invalid shifted string length:",
+          "Invalid shifted string length:",
           shiftedString.length,
           shiftedString
         );
@@ -78,17 +60,14 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   //       }
   //       event.preventDefault(); // デフォルトの動作を防ぐ
   //       const number = parseInt(key, 10);
-  //       console.log("DEBUG: Keyboard input - key:", key, "number:", number);
   //       handleNumberClick(number);
   //     }
 
   //     // SキーでSTART/PAUSE
   //     else if (key === "s") {
   //       event.preventDefault();
-  //       console.log("DEBUG: Keyboard shortcut - S key pressed");
   //       // 00:00の場合はStartを無効化
   //       if (minutes === 0 && seconds === 0) {
-  //         console.log("DEBUG: Cannot start timer with 00:00");
   //         return;
   //       }
   //       if (isRunning) {
@@ -101,7 +80,6 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   //     // RキーでRESET
   //     else if (key === "r") {
   //       event.preventDefault();
-  //       console.log("DEBUG: Keyboard shortcut - R key pressed");
   //       onReset();
   //     }
   //   };
