@@ -40,6 +40,22 @@ const App: React.FC = () => {
   // TimeUP表示の状態管理
   const [showTimeUp, setShowTimeUp] = useState(false);
 
+  // アラーム再生フラグ（重複再生を防ぐ）
+  const alarmPlayedRef = useRef(false);
+
+  // アラーム音の参照（停止用）
+  const alarmAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // アラーム音を停止する関数
+  const stopAlarm = useCallback(() => {
+    if (alarmAudioRef.current) {
+      alarmAudioRef.current.pause();
+      alarmAudioRef.current.currentTime = 0;
+      alarmAudioRef.current = null;
+    }
+    alarmPlayedRef.current = false;
+  }, []);
+
   // ポート動的設定
   const setupPort = useCallback(async () => {
     if (!isTauri()) return 1420; // 開発時は固定ポート
@@ -117,21 +133,37 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const playAlarm = useCallback(async () => {
-    // 選択されたアラーム音ファイルを再生
-    const audio = new Audio(`/sounds/${settings.alarmSound}`);
-    audio.volume = settings.alarmVolume;
-
-    try {
-      await audio.play();
-    } catch (error) {
-      console.error("Failed to play alarm sound:", error);
-    }
-  }, [settings.alarmSound, settings.alarmVolume]);
 
   // タイマー状態の保存・読み込み
   useEffect(() => {
     let interval: number | null = null;
+
+    // playAlarm関数をuseEffect内で定義（最新のsettingsを参照）
+    const playAlarmInEffect = async () => {
+      const audio = new Audio(`/sounds/${settings.alarmSound}`);
+      audio.volume = settings.alarmVolume;
+      alarmAudioRef.current = audio; // 参照を保持
+
+      // 音声終了時の処理
+      audio.addEventListener('ended', () => {
+        alarmAudioRef.current = null;
+        alarmPlayedRef.current = false;
+      });
+
+      // エラー時の処理
+      audio.addEventListener('error', () => {
+        alarmAudioRef.current = null;
+        alarmPlayedRef.current = false;
+      });
+
+      try {
+        await audio.play();
+      } catch (error) {
+        console.error("Failed to play alarm sound:", error);
+        alarmAudioRef.current = null;
+        alarmPlayedRef.current = false;
+      }
+    };
 
     if (timerState.isRunning && timerState.timeRemaining > 0) {
       interval = setInterval(() => {
@@ -142,10 +174,13 @@ const App: React.FC = () => {
             // TimeUP表示を有効化
             setShowTimeUp(true);
 
-            // 音声再生を開始
-            playAlarm().catch((error) => {
-              console.error("Failed to start alarm sound:", error);
-            });
+            // 音声再生を開始（重複再生を防ぐ）
+            if (!alarmPlayedRef.current) {
+              alarmPlayedRef.current = true;
+              playAlarmInEffect().catch((error) => {
+                console.error("Failed to start alarm sound:", error);
+              });
+            }
 
             // 音声再生開始後、設定に応じてウィンドウを表示（重複実行を防ぐ）
             if (!timeUpWindowShownRef.current && settings.showTimeUpWindow) {
@@ -193,9 +228,12 @@ const App: React.FC = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [timerState.isRunning, timerState.timeRemaining, lastSetTime, playAlarm, settings.showTimeUpWindow]);
+  }, [timerState.isRunning, timerState.timeRemaining, lastSetTime, settings.alarmSound, settings.alarmVolume, settings.showTimeUpWindow, stopAlarm]);
 
   const updateTimer = useCallback((minutes: number, seconds: number) => {
+    // アラーム音を停止
+    stopAlarm();
+
     const totalSeconds = minutes * 60 + seconds;
     setTimerState((prev) => {
       const newState = {
@@ -206,12 +244,15 @@ const App: React.FC = () => {
       };
       return newState;
     });
-  }, []);
+  }, [stopAlarm]);
 
   const updateTimerBoth = useCallback(
     async (minutes: number, seconds: number) => {
       // TimeUP表示を消す
       setShowTimeUp(false);
+
+      // アラーム音を停止
+      stopAlarm();
 
       const totalSeconds = minutes * 60 + seconds;
 
@@ -244,12 +285,15 @@ const App: React.FC = () => {
         }
       }
     },
-    [lastSetTime]
+    [lastSetTime, stopAlarm]
   );
 
   const startTimer = useCallback(() => {
     // TimeUP表示を消す
     setShowTimeUp(false);
+
+    // アラーム音を停止
+    stopAlarm();
 
     // 数字が編集されていた場合のみ、現在の時間を記憶
     if (hasNumberBeenEdited) {
@@ -267,7 +311,7 @@ const App: React.FC = () => {
       isRunning: true,
       isPaused: false,
     }));
-  }, [hasNumberBeenEdited, timerState.minutes, timerState.seconds]);
+  }, [hasNumberBeenEdited, timerState.minutes, timerState.seconds, stopAlarm]);
 
   const pauseTimer = useCallback(() => {
     setTimerState((prev) => ({
@@ -281,6 +325,9 @@ const App: React.FC = () => {
     // TimeUP表示を消す
     setShowTimeUp(false);
 
+    // アラーム音を停止
+    stopAlarm();
+
     // リセット時に記憶もクリア
     setLastSetTime(null);
     setHasNumberBeenEdited(false);
@@ -293,7 +340,7 @@ const App: React.FC = () => {
       seconds: 0,
       timeRemaining: 0,
     }));
-  }, []);
+  }, [stopAlarm]);
 
   // F12キーでデベロッパーツールを開く
   useEffect(() => {
@@ -390,6 +437,9 @@ const App: React.FC = () => {
     // マウス操作でTimeUP表示を消す
     setShowTimeUp(false);
 
+    // アラーム音を停止
+    stopAlarm();
+
     // 操作可能な要素（ボタン、スライダー、入力要素など）でのドラッグ開始を防ぐ
     const target = event.target as HTMLElement;
     const isInteractiveElement = target.closest('button, input, select, .volume-slider, .volume-control-container, .settings-overlay');
@@ -446,6 +496,9 @@ const App: React.FC = () => {
 
       // キーボード入力でTimeUP表示を消す
       setShowTimeUp(false);
+
+      // アラーム音を停止
+      stopAlarm();
 
       // 数字キー（0-9）の処理
       if (key >= "0" && key <= "9") {
@@ -528,7 +581,7 @@ const App: React.FC = () => {
         }
       }
     },
-    [timerState, startTimer, pauseTimer, resetTimer, updateTimerBoth, settings]
+    [timerState, startTimer, pauseTimer, resetTimer, updateTimerBoth, settings, stopAlarm]
   );
 
   // キーボードイベントリスナーの設定
@@ -544,6 +597,8 @@ const App: React.FC = () => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.action === 'closeTimeUpWindow') {
         timeUpWindowShownRef.current = false; // フラグをリセット
+        // アラーム音を停止
+        stopAlarm();
         if (isTauri()) {
           // Time Upウィンドウのみを閉じる
           invoke("hide_timeup_window").catch((error) => {
@@ -557,6 +612,8 @@ const App: React.FC = () => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'closeTimeUpWindow') {
         timeUpWindowShownRef.current = false; // フラグをリセット
+        // アラーム音を停止
+        stopAlarm();
         if (isTauri()) {
           // Time Upウィンドウのみを閉じる
           invoke("hide_timeup_window").catch((error) => {
@@ -573,7 +630,7 @@ const App: React.FC = () => {
       window.removeEventListener('message', handleMessage);
       window.removeEventListener('storage', handleStorageChange);
     };
-  }, []);
+  }, [stopAlarm]);
 
   return (
     <div
