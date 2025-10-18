@@ -9,14 +9,14 @@ use std::net::{TcpListener, SocketAddr};
 use tauri_plugin_store::Builder as StoreBuilder;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
-struct WindowState {
+pub struct WindowState {
     x: Option<i32>,
     y: Option<i32>,
     width: Option<u32>,
     height: Option<u32>,
 }
 
-fn get_window_state_path() -> std::path::PathBuf {
+pub fn get_window_state_path() -> std::path::PathBuf {
     let mut path = dirs::data_dir().unwrap_or_else(|| std::path::PathBuf::from("."));
     path.push("lightning-timer");
     fs::create_dir_all(&path).ok();
@@ -24,7 +24,7 @@ fn get_window_state_path() -> std::path::PathBuf {
     path
 }
 
-fn find_available_port() -> Result<u16, Box<dyn std::error::Error>> {
+pub fn find_available_port() -> Result<u16, Box<dyn std::error::Error>> {
     // 開発時は1420番ポートを使用
     #[cfg(debug_assertions)]
     {
@@ -359,3 +359,6 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+#[cfg(test)]
+mod tests;
