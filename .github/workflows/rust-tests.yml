@@ -18,6 +18,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.0-dev libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -45,12 +50,18 @@ jobs:
       - name: Build project
         run: |
           cd src-tauri
+          echo "Building Rust project..."
           cargo build --verbose
+          echo "Build completed successfully"
+        env:
+          CARGO_TERM_COLOR: always
 
       - name: Run tests
         run: |
           cd src-tauri
+          echo "Running tests..."
           cargo test --verbose
+          echo "Tests completed successfully"
 
       - name: Check formatting
         run: |
