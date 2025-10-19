@@ -1,11 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::{AppHandle, Manager, WindowEvent};
 use serde::{Deserialize, Serialize};
 use std::fs;
 #[cfg(not(debug_assertions))]
-use std::net::{TcpListener, SocketAddr};
+use std::net::{SocketAddr, TcpListener};
+use tauri::{AppHandle, Manager, WindowEvent};
 use tauri_plugin_store::Builder as StoreBuilder;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -29,7 +29,7 @@ pub fn find_available_port() -> Result<u16, Box<dyn std::error::Error>> {
     #[cfg(debug_assertions)]
     {
         println!("DEBUG: Development mode - using port 1420");
-        return Ok(1420);
+        Ok(1420)
     }
 
     // 製品ビルド時は20000番台から順番に空いているポートを探す
@@ -50,7 +50,7 @@ fn save_window_state(window: &tauri::WebviewWindow) -> Result<(), Box<dyn std::e
     let state = WindowState {
         x: window.outer_position().ok().map(|p| p.x),
         y: window.outer_position().ok().map(|p| p.y),
-        width: None, // サイズは固定なので保存しない
+        width: None,  // サイズは固定なので保存しない
         height: None, // サイズは固定なので保存しない
     };
 
@@ -130,7 +130,10 @@ async fn set_window_size(app: AppHandle, width: u32, height: u32) -> Result<(), 
     if let Some(window) = app.get_webview_window("main") {
         // 現在のサイズを取得してデバッグ出力
         if let Ok(current_size) = window.inner_size() {
-            println!("DEBUG: Current window size: {}x{}", current_size.width, current_size.height);
+            println!(
+                "DEBUG: Current window size: {}x{}",
+                current_size.width, current_size.height
+            );
         }
 
         // スケールファクターを取得
@@ -141,10 +144,16 @@ async fn set_window_size(app: AppHandle, width: u32, height: u32) -> Result<(), 
         let logical_width = width as f64;
         let logical_height = height as f64;
 
-        println!("DEBUG: Setting logical size to {}x{} (scale factor: {})", logical_width, logical_height, scale_factor);
+        println!(
+            "DEBUG: Setting logical size to {}x{} (scale factor: {})",
+            logical_width, logical_height, scale_factor
+        );
 
         // 論理サイズで設定
-        if let Err(e) = window.set_size(tauri::Size::Logical(tauri::LogicalSize { width: logical_width, height: logical_height })) {
+        if let Err(e) = window.set_size(tauri::Size::Logical(tauri::LogicalSize {
+            width: logical_width,
+            height: logical_height,
+        })) {
             println!("DEBUG: Failed to set logical size: {}", e);
             return Err(format!("Failed to set window size: {}", e));
         }
@@ -154,7 +163,10 @@ async fn set_window_size(app: AppHandle, width: u32, height: u32) -> Result<(), 
 
         // 変更後のサイズを確認
         if let Ok(new_size) = window.inner_size() {
-            println!("DEBUG: New window size: {}x{}", new_size.width, new_size.height);
+            println!(
+                "DEBUG: New window size: {}x{}",
+                new_size.width, new_size.height
+            );
         }
     }
     Ok(())
@@ -207,7 +219,8 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
         println!("DEBUG: Showing existing Time Up window");
 
         // ウィンドウ表示前にisClosingフラグをリセット
-        let _ = existing_window.eval("
+        let _ = existing_window.eval(
+            "
             console.log('Resetting isClosing flag...');
             if (typeof isClosing !== 'undefined') {
                 isClosing = false;
@@ -215,10 +228,16 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
             } else {
                 console.log('isClosing variable not found');
             }
-        ");
+        ",
+        );
 
         // ウィンドウをプライマリモニターの左上角に移動
-        if let Err(e) = existing_window.set_position(tauri::Position::Logical(tauri::LogicalPosition { x: 0.0, y: 0.0 })) {
+        if let Err(e) =
+            existing_window.set_position(tauri::Position::Logical(tauri::LogicalPosition {
+                x: 0.0,
+                y: 0.0,
+            }))
+        {
             println!("DEBUG: Failed to set window position: {}", e);
         }
 
@@ -246,8 +265,10 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
                 // 論理サイズを計算（物理サイズ / スケールファクター）
                 let logical_width = size.width as f64 / scale_factor;
                 let logical_height = size.height as f64 / scale_factor;
-                println!("DEBUG: Physical size: {}x{}, Scale factor: {}, Logical size: {}x{}",
-                        size.width, size.height, scale_factor, logical_width, logical_height);
+                println!(
+                    "DEBUG: Physical size: {}x{}, Scale factor: {}, Logical size: {}x{}",
+                    size.width, size.height, scale_factor, logical_width, logical_height
+                );
                 (logical_width, logical_height)
             } else {
                 println!("DEBUG: No primary monitor found, using default size");
@@ -266,7 +287,7 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
     match tauri::WebviewWindowBuilder::new(
         &app,
         "timeup",
-        tauri::WebviewUrl::App("timeup.html".into())
+        tauri::WebviewUrl::App("timeup.html".into()),
     )
     .title("Time Up!!")
     .inner_size(screen_size.0, screen_size.1) // プライマリモニターの画面サイズに合わせる
@@ -275,7 +296,8 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
     .decorations(false) // ウィンドウバー非表示
     .always_on_top(true)
     .visible(true) // 明示的に可視化
-    .build() {
+    .build()
+    {
         Ok(_window) => {
             println!("DEBUG: Time Up window created with screen size");
 
@@ -323,7 +345,6 @@ async fn hide_timeup_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-
 fn main() {
     tauri::Builder::default()
         .plugin(StoreBuilder::default().build())
@@ -338,8 +359,8 @@ fn main() {
             Ok(())
         })
                .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag, save_window_position, set_window_size, set_window_resizable, focus_window, get_available_port, show_timeup_window, hide_timeup_window])
-        .on_window_event(|window, event| match event {
-            WindowEvent::CloseRequested { .. } => {
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { .. } = event {
                 // タイマー状態保存を促す
                 if let Some(main_window) = window.app_handle().get_webview_window("main") {
                     let _ = main_window.eval("if (window.__TAURI__) { window.__TAURI__.core.invoke('save_timer_state_on_exit'); }");
@@ -354,7 +375,6 @@ fn main() {
                 // メインウィンドウが閉じられた際にアプリケーション全体を終了
                 std::process::exit(0);
             }
-            _ => {}
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

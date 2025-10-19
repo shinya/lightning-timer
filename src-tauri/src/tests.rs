@@ -1,5 +1,4 @@
 use super::*;
-use serde_json;
 
 #[test]
 fn test_get_window_state_path() {
@@ -39,7 +38,8 @@ fn test_window_state_serialization() {
     assert!(!json.is_empty());
 
     // デシリアライズ
-    let deserialized_state: WindowState = serde_json::from_str(&json).expect("Failed to deserialize WindowState");
+    let deserialized_state: WindowState =
+        serde_json::from_str(&json).expect("Failed to deserialize WindowState");
 
     // 値が一致することを確認
     assert_eq!(original_state.x, deserialized_state.x);
@@ -63,7 +63,8 @@ fn test_window_state_serialization_with_none_values() {
     assert!(!json.is_empty());
 
     // デシリアライズ
-    let deserialized_state: WindowState = serde_json::from_str(&json).expect("Failed to deserialize WindowState");
+    let deserialized_state: WindowState =
+        serde_json::from_str(&json).expect("Failed to deserialize WindowState");
 
     // 値が一致することを確認
     assert_eq!(original_state.x, deserialized_state.x);

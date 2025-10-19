@@ -20,7 +20,12 @@
     "verify:app": "./script/verify-app.sh",
     "test:rust": "cd src-tauri && cargo test",
     "test:rust:verbose": "cd src-tauri && cargo test --verbose",
-    "test:rust:watch": "cd src-tauri && cargo watch -x test"
+    "test:rust:watch": "cd src-tauri && cargo watch -x test",
+    "check:rust": "cd src-tauri && cargo check",
+    "fmt:rust": "cd src-tauri && cargo fmt --all",
+    "fmt:rust:check": "cd src-tauri && cargo fmt --all -- --check",
+    "lint:rust": "cd src-tauri && cargo clippy --all-targets --all-features -- -D warnings",
+    "pre-commit:rust": "npm run fmt:rust:check && npm run lint:rust && npm run test:rust"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.8.0",
