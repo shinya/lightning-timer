@@ -69,7 +69,16 @@ jobs:
         run: |
           cd src-tauri
           echo "Building Rust project..."
-          cargo build --verbose
+          echo "Rust version:"
+          rustc --version
+          echo "Cargo version:"
+          cargo --version
+          echo "Building with detailed output..."
+          cargo build --verbose 2>&1 || {
+            echo "Build failed, checking for specific errors..."
+            cargo check --verbose 2>&1 || echo "cargo check also failed"
+            exit 1
+          }
           echo "Build completed successfully"
         env:
           CARGO_TERM_COLOR: always
