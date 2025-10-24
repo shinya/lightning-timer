@@ -73,12 +73,13 @@ jobs:
           rustc --version
           echo "Cargo version:"
           cargo --version
+          echo "Current directory contents:"
+          ls -la
+          echo "Cargo.toml contents:"
+          cat Cargo.toml
           echo "Building with detailed output..."
-          cargo build --verbose 2>&1 || {
-            echo "Build failed, checking for specific errors..."
-            cargo check --verbose 2>&1 || echo "cargo check also failed"
-            exit 1
-          }
+          set -e
+          cargo build --verbose
           echo "Build completed successfully"
         env:
           CARGO_TERM_COLOR: always
