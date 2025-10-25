@@ -77,8 +77,13 @@ jobs:
           ls -la
           echo "Cargo.toml contents:"
           cat Cargo.toml
+          echo "Checking system libraries..."
+          pkg-config --list-all | grep -E "(webkit|gtk|glib)" || echo "No webkit/gtk packages found"
+          echo "Checking for required libraries..."
+          pkg-config --exists webkit2gtk-4.0 && echo "webkit2gtk-4.0 found" || echo "webkit2gtk-4.0 NOT found"
+          pkg-config --exists gtk+-3.0 && echo "gtk+-3.0 found" || echo "gtk+-3.0 NOT found"
+          pkg-config --exists glib-2.0 && echo "glib-2.0 found" || echo "glib-2.0 NOT found"
           echo "Building with detailed output..."
-          set -e
           cargo build --verbose
           echo "Build completed successfully"
         env:
