@@ -387,7 +387,7 @@ button {
 .main-controls-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
   gap: 8px;
 }
 
@@ -484,6 +484,17 @@ button {
 /* ダークモード時のSettingsボタンの文字色をグレーに */
 .dark .control-btn.settings-btn {
   color: #333333;
+}
+
+.control-btn.help-btn {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+.control-btn.help-btn:hover:not(:disabled) {
+  background-color: #5a6268;
+  border-color: #5a6268;
 }
 
 .control-btn.number-pad-btn {
@@ -976,4 +987,132 @@ button {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
+}
+
+/* Help Modal Styles */
+.help-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 8px;
+}
+
+.help {
+  background-color: var(--bg-secondary);
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 10px 30px var(--shadow);
+  width: 100%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.help-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.help-header h3 {
+  color: var(--text-primary);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.help-content {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+  min-height: 0;
+}
+
+.help-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.help-content::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-radius: 4px;
+}
+
+.help-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.help-content::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+.shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.shortcuts-table thead {
+  background-color: var(--bg-secondary);
+}
+
+.shortcuts-table th {
+  padding: 4px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+}
+
+.shortcuts-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.shortcuts-table tbody tr:hover {
+  background-color: var(--bg-primary);
+}
+
+.key-cell {
+  width: 30%;
+  font-weight: 600;
+}
+
+.description-cell {
+  width: 70%;
+}
+
+.shortcuts-table kbd {
+  display: inline-block;
+  padding: 4px 8px;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: 'MesloPowerline', 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  box-shadow: 0 1px 2px var(--shadow);
+  min-width: 40px;
+  text-align: center;
+}
+
+.dark .shortcuts-table kbd {
+  background-color: #1a1a1a;
+  border-color: #333333;
+  color: #00ff00;
+  box-shadow: 0 0 4px rgba(0, 255, 0, 0.3);
 }

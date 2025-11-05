@@ -9,6 +9,7 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   onPause,
   onReset,
   onSettings,
+  onHelp,
   onMinutesChange,
   onSecondsChange,
   onBothChange,
@@ -269,6 +270,10 @@ const TimerControls: React.FC<TimerControlsProps> = ({
 
             <button className="control-btn settings-btn" onClick={onSettings}>
               Settings
+            </button>
+
+            <button className="control-btn help-btn" onClick={onHelp}>
+              Help
             </button>
           </div>
 

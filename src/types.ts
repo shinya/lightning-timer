@@ -30,6 +30,7 @@ export interface TimerControlsProps {
   onPause: () => void;
   onReset: () => void;
   onSettings: () => void;
+  onHelp: () => void;
   onMinutesChange: (minutes: number) => void;
   onSecondsChange: (seconds: number) => void;
   onBothChange: (minutes: number, seconds: number) => void;

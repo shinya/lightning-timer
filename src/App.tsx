@@ -5,6 +5,7 @@ import { Store } from "@tauri-apps/plugin-store";
 import TimerDisplay from "./components/TimerDisplay";
 import TimerControls from "./components/TimerControls";
 import Settings from "./components/Settings";
+import Help from "./components/Help";
 import { TimerState, Settings as SettingsType } from "./types";
 
 const App: React.FC = () => {
@@ -99,6 +100,7 @@ const App: React.FC = () => {
   }, []);
 
   const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   // 最後に設定した時間を記憶する状態
   const [lastSetTime, setLastSetTime] = useState<{
@@ -673,6 +675,7 @@ const App: React.FC = () => {
             onPause={pauseTimer}
             onReset={resetTimer}
             onSettings={() => setShowSettings(true)}
+            onHelp={() => setShowHelp(true)}
             onMinutesChange={(minutes) =>
               updateTimer(minutes, timerState.seconds)
             }
@@ -696,6 +699,10 @@ const App: React.FC = () => {
           onClose={() => setShowSettings(false)}
           onSettingsChange={handleSettingsChange}
         />
+      )}
+
+      {showHelp && (
+        <Help onClose={() => setShowHelp(false)} />
       )}
     </div>
   );
