@@ -387,8 +387,9 @@ button {
 .main-controls-buttons {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr 1fr;
+  grid-template-rows: auto auto auto;
   gap: 8px;
+  align-content: start;
 }
 
 .main-controls-volume {
@@ -1055,17 +1056,17 @@ button {
   background: var(--text-secondary);
 }
 
-.shortcuts-table {
+.help .shortcuts-table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
 }
 
-.shortcuts-table thead {
+.help .shortcuts-table thead {
   background-color: var(--bg-secondary);
 }
 
-.shortcuts-table th {
+.help .shortcuts-table th {
   padding: 4px 8px;
   text-align: left;
   font-weight: 600;
@@ -1076,26 +1077,26 @@ button {
   letter-spacing: 0.5px;
 }
 
-.shortcuts-table td {
+.help .shortcuts-table td {
   padding: 4px 8px;
   border-bottom: 1px solid var(--border);
   color: var(--text-primary);
 }
 
-.shortcuts-table tbody tr:hover {
+.help .shortcuts-table tbody tr:hover {
   background-color: var(--bg-primary);
 }
 
-.key-cell {
+.help .key-cell {
   width: 30%;
   font-weight: 600;
 }
 
-.description-cell {
+.help .description-cell {
   width: 70%;
 }
 
-.shortcuts-table kbd {
+.help .shortcuts-table kbd {
   display: inline-block;
   padding: 4px 8px;
   background-color: var(--bg-primary);
@@ -1110,7 +1111,7 @@ button {
   text-align: center;
 }
 
-.dark .shortcuts-table kbd {
+.dark .help .shortcuts-table kbd {
   background-color: #1a1a1a;
   border-color: #333333;
   color: #00ff00;
