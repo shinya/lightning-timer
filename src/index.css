@@ -488,14 +488,26 @@ button {
 }
 
 .control-btn.help-btn {
-  background-color: #6c757d;
-  border-color: #6c757d;
-  color: white;
+  background-color: #ff9800;
+  border-color: #ff9800;
+  color: #000000;
 }
 
 .control-btn.help-btn:hover:not(:disabled) {
-  background-color: #5a6268;
-  border-color: #5a6268;
+  background-color: #ffb74d;
+  border-color: #ffb74d;
+}
+
+/* ダークモード時のHelpボタンの色を変更（オレンジ系で見やすく） */
+.dark .control-btn.help-btn {
+  background-color: #ff9800;
+  border-color: #ff9800;
+  color: #000000;
+}
+
+.dark .control-btn.help-btn:hover:not(:disabled) {
+  background-color: #ffb74d;
+  border-color: #ffb74d;
 }
 
 .control-btn.number-pad-btn {
