@@ -11,7 +11,7 @@ export interface Settings {
   darkMode: boolean;
   alarmSound: string;
   alarmVolume: number;
-  compactMode: boolean;
+  displayMode: "normal" | "compact" | "minimal";
   showTimeUpWindow: boolean;
 }
 

@@ -213,6 +213,40 @@ button {
   transform: scale(1.6);
 }
 
+/* ミニマム表示モード時のレイアウト調整 */
+.app.minimal .timer-container {
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.app.minimal .timer-display {
+  flex: none;
+  width: 100%;
+  height: 100%;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: none;
+}
+
+.app.minimal .timer-display .status {
+  display: none;
+}
+
+.app.minimal .timer-display .time {
+  font-size: 2.6 rem;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+.app.minimal .timer-display .timeup-text {
+  font-size: 1.6rem;
+}
+
 .timer-display {
   flex: 0 0 160px;
   display: flex;

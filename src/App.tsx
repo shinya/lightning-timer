@@ -34,7 +34,7 @@ const App: React.FC = () => {
     darkMode: false,
     alarmSound: "alarm.mp3",
     alarmVolume: 0.8,
-    compactMode: false, // 常に通常モードで起動
+    displayMode: "normal", // 常に通常モードで起動
     showTimeUpWindow: true, // デフォルトでTime Up画面を表示
   });
 
@@ -78,9 +78,18 @@ const App: React.FC = () => {
 
     try {
       const settings = await Store.load("settings.json");
-      const savedSettings = await settings.get<SettingsType>("settings");
+      const savedSettings = await settings.get<Partial<SettingsType> & { compactMode?: boolean }>("settings");
       if (savedSettings) {
-        setSettings(savedSettings);
+        // 古い形式（compactMode: boolean）との互換性
+        const convertedSettings: SettingsType = {
+          alwaysOnTop: savedSettings.alwaysOnTop ?? false,
+          darkMode: savedSettings.darkMode ?? false,
+          alarmSound: savedSettings.alarmSound ?? "alarm.mp3",
+          alarmVolume: savedSettings.alarmVolume ?? 0.8,
+          displayMode: savedSettings.displayMode ?? (savedSettings.compactMode ? "compact" : "normal"),
+          showTimeUpWindow: savedSettings.showTimeUpWindow ?? true,
+        };
+        setSettings(convertedSettings);
       }
     } catch (error) {
       console.error("Failed to load settings:", error);
@@ -471,16 +480,33 @@ const App: React.FC = () => {
   };
 
   const handleCompactModeToggle = useCallback(async () => {
-    const newCompactMode = !settings.compactMode;
-    const newSettings = { ...settings, compactMode: newCompactMode };
+    // 通常 → 簡易 → ミニマム → 通常の順で循環
+    const nextMode: "normal" | "compact" | "minimal" =
+      settings.displayMode === "normal" ? "compact" :
+      settings.displayMode === "compact" ? "minimal" :
+      "normal";
+
+    const newSettings = { ...settings, displayMode: nextMode };
     setSettings(newSettings);
-    // 簡易表示モードの状態は保存しない
+    // 表示モードの状態は保存しない
 
     // ウィンドウサイズを変更
     if (isTauri()) {
       try {
-        const width = newCompactMode ? 400 : 800;
-        const height = 200;
+        let width: number;
+        let height: number;
+
+        if (nextMode === "normal") {
+          width = 800;
+          height = 200;
+        } else if (nextMode === "compact") {
+          width = 400;
+          height = 200;
+        } else { // minimal
+          width = 200;
+          height = 100;
+        }
+
         await invoke("set_window_size", { width, height });
 
         // ウィンドウのリサイズを無効化
@@ -558,21 +584,36 @@ const App: React.FC = () => {
         resetTimer();
       }
 
-      // Vキーで簡易表示モード切り替え
+      // Vキーで表示モード切り替え（通常 → 簡易 → ミニマム → 通常）
       else if (key === "v") {
         event.preventDefault();
 
-        // 現在の状態を直接取得して切り替え
-        const newCompactMode = !settings.compactMode;
+        // 通常 → 簡易 → ミニマム → 通常の順で循環
+        const nextMode: "normal" | "compact" | "minimal" =
+          settings.displayMode === "normal" ? "compact" :
+          settings.displayMode === "compact" ? "minimal" :
+          "normal";
 
-        const newSettings = { ...settings, compactMode: newCompactMode };
+        const newSettings = { ...settings, displayMode: nextMode };
         setSettings(newSettings);
 
         // ウィンドウサイズを変更
         if (isTauri()) {
           try {
-            const width = newCompactMode ? 400 : 800;
-            const height = 200;
+            let width: number;
+            let height: number;
+
+            if (nextMode === "normal") {
+              width = 800;
+              height = 200;
+            } else if (nextMode === "compact") {
+              width = 400;
+              height = 200;
+            } else { // minimal
+              width = 200;
+              height = 100;
+            }
+
             await invoke("set_window_size", { width, height });
 
             // ウィンドウのリサイズを無効化
@@ -636,7 +677,7 @@ const App: React.FC = () => {
 
   return (
     <div
-      className={`app ${settings.darkMode ? "dark" : "light"} ${settings.compactMode ? "compact" : ""}`}
+      className={`app ${settings.darkMode ? "dark" : "light"} ${settings.displayMode === "compact" ? "compact" : ""} ${settings.displayMode === "minimal" ? "minimal" : ""}`}
       onMouseDown={handleDragStart}
       onMouseUp={handleMouseUp}
     >
@@ -649,13 +690,19 @@ const App: React.FC = () => {
         <img src="/icon/power.svg" width="16" height="16" alt="Power" />
       </button>
 
-      {/* 簡易表示モード切り替えボタン */}
+      {/* 表示モード切り替えボタン */}
       <button
         className="compact-toggle-button"
         onClick={handleCompactModeToggle}
-        title={settings.compactMode ? "通常表示に戻す" : "簡易表示モード"}
+        title={
+          settings.displayMode === "normal" ? "簡易表示モード" :
+          settings.displayMode === "compact" ? "ミニマム表示モード" :
+          "通常表示に戻す"
+        }
       >
-        {settings.compactMode ? "⧉" : "⊡"}
+        {settings.displayMode === "normal" ? "⊡" :
+         settings.displayMode === "compact" ? "⧉" :
+         "⊞"}
       </button>
 
       <div className="timer-container">
@@ -666,7 +713,7 @@ const App: React.FC = () => {
           showTimeUp={showTimeUp}
         />
 
-        {!settings.compactMode && (
+        {settings.displayMode === "normal" && (
           <TimerControls
             minutes={timerState.minutes}
             seconds={timerState.seconds}
