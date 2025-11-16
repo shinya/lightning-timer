@@ -6,6 +6,7 @@ import TimerDisplay from "./components/TimerDisplay";
 import TimerControls from "./components/TimerControls";
 import Settings from "./components/Settings";
 import Help from "./components/Help";
+import AboutInfo from "./components/AboutInfo";
 import { TimerState, Settings as SettingsType } from "./types";
 
 const App: React.FC = () => {
@@ -110,6 +111,7 @@ const App: React.FC = () => {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAboutInfo, setShowAboutInfo] = useState(false);
 
   // 最後に設定した時間を記憶する状態
   const [lastSetTime, setLastSetTime] = useState<{
@@ -705,6 +707,15 @@ const App: React.FC = () => {
          "⊞"}
       </button>
 
+      {/* 情報アイコンボタン（右下） */}
+      <button
+        className="info-button"
+        onClick={() => setShowAboutInfo(true)}
+        title="アプリ情報"
+      >
+        <i className="fas fa-info-circle"></i>
+      </button>
+
       <div className="timer-container">
         <TimerDisplay
           minutes={timerState.minutes}
@@ -750,6 +761,10 @@ const App: React.FC = () => {
 
       {showHelp && (
         <Help onClose={() => setShowHelp(false)} />
+      )}
+
+      {showAboutInfo && (
+        <AboutInfo onClose={() => setShowAboutInfo(false)} />
       )}
     </div>
   );
