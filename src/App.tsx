@@ -707,14 +707,16 @@ const App: React.FC = () => {
          "⊞"}
       </button>
 
-      {/* 情報アイコンボタン（右下） */}
-      <button
-        className="info-button"
-        onClick={() => setShowAboutInfo(true)}
-        title="アプリ情報"
-      >
-        <i className="fas fa-info-circle"></i>
-      </button>
+      {/* 情報アイコンボタン（右下） - 通常モードと簡易モードのみ表示 */}
+      {settings.displayMode !== "minimal" && (
+        <button
+          className="info-button"
+          onClick={() => setShowAboutInfo(true)}
+          title="App Info"
+        >
+          <i className="fas fa-info-circle"></i>
+        </button>
+      )}
 
       <div className="timer-container">
         <TimerDisplay
