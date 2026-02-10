@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow, currentMonitor, LogicalSize, PhysicalPosition } from "@tauri-apps/api/window";
 import { Store } from "@tauri-apps/plugin-store";
 import TimerDisplay from "./components/TimerDisplay";
 import TimerControls from "./components/TimerControls";
@@ -41,6 +41,12 @@ const App: React.FC = () => {
 
   // TimeUP表示の状態管理
   const [showTimeUp, setShowTimeUp] = useState(false);
+
+  // フルスクリーン状態管理
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // フルスクリーン前のウィンドウ位置を保存
+  const savedWindowGeometryRef = useRef<{ x: number; y: number } | null>(null);
 
   // アラーム再生フラグ（重複再生を防ぐ）
   const alarmPlayedRef = useRef(false);
@@ -509,15 +515,108 @@ const App: React.FC = () => {
           height = 100;
         }
 
+        const currentWindow = getCurrentWindow();
+
+        // フルスクリーン中はモード切り替え時に解除
+        if (isFullscreen) {
+          setIsFullscreen(false);
+          // 保存しておいた位置に戻す
+          if (savedWindowGeometryRef.current) {
+            const { x, y } = savedWindowGeometryRef.current;
+            await currentWindow.setPosition(new PhysicalPosition(x, y));
+            savedWindowGeometryRef.current = null;
+          }
+        }
+
+        // サイズ制約を一旦解除してからリサイズ
+        await currentWindow.setMinSize(null);
+        await currentWindow.setMaxSize(null);
         await invoke("set_window_size", { width, height });
 
-        // ウィンドウのリサイズを無効化
-        await invoke("set_window_resizable", { resizable: false });
+        // min/maxサイズ制約でリサイズを防止
+        const size = new LogicalSize(width, height);
+        await currentWindow.setMinSize(size);
+        await currentWindow.setMaxSize(size);
       } catch (error) {
         console.error("Failed to set window size:", error);
       }
     }
-  }, [settings]);
+  }, [settings, isFullscreen]);
+
+  // フルスクリーン切り替え（手動フルスクリーン：ネイティブのsetFullscreenはmacOSデュアルディスプレイで問題があるため使わない）
+  const handleFullscreenToggle = useCallback(async () => {
+    if (!isTauri()) return;
+
+    try {
+      const currentWindow = getCurrentWindow();
+      const newFullscreen = !isFullscreen;
+
+      if (newFullscreen) {
+        // フルスクリーン前のウィンドウ位置を保存
+        const position = await currentWindow.outerPosition();
+        savedWindowGeometryRef.current = { x: position.x, y: position.y };
+
+        // 現在のモニター情報を取得
+        const monitor = await currentMonitor();
+        if (!monitor) {
+          console.error("Failed to get current monitor");
+          return;
+        }
+
+        // サイズ制約を解除してモニターサイズに拡大
+        await currentWindow.setMinSize(null);
+        await currentWindow.setMaxSize(null);
+
+        // モニターの論理サイズを計算
+        const logicalWidth = Math.round(monitor.size.width / monitor.scaleFactor);
+        const logicalHeight = Math.round(monitor.size.height / monitor.scaleFactor);
+
+        // モニターの左上に移動してから全画面サイズに変更
+        await currentWindow.setPosition(monitor.position);
+        await invoke("set_window_size", { width: logicalWidth, height: logicalHeight });
+      } else {
+        // 元のモードのウィンドウサイズに戻す
+        let width: number;
+        let height: number;
+        if (settings.displayMode === "compact") {
+          width = 400;
+          height = 200;
+        } else if (settings.displayMode === "minimal") {
+          width = 200;
+          height = 100;
+        } else {
+          width = 800;
+          height = 200;
+        }
+
+        // サイズ制約を一旦解除してからリサイズ
+        await currentWindow.setMinSize(null);
+        await currentWindow.setMaxSize(null);
+
+        // 保存しておいた位置に先に戻す（リサイズ前にモニター内に戻す）
+        if (savedWindowGeometryRef.current) {
+          const { x, y } = savedWindowGeometryRef.current;
+          await currentWindow.setPosition(new PhysicalPosition(x, y));
+          savedWindowGeometryRef.current = null;
+        }
+
+        await invoke("set_window_size", { width, height });
+
+        // min/maxサイズ制約でリサイズを防止
+        const size = new LogicalSize(width, height);
+        await currentWindow.setMinSize(size);
+        await currentWindow.setMaxSize(size);
+      }
+
+      setIsFullscreen(newFullscreen);
+
+      // WKWebViewのフォーカスを復帰
+      await new Promise(resolve => setTimeout(resolve, 50));
+      await invoke("focus_window");
+    } catch (error) {
+      console.error("Failed to toggle fullscreen:", error);
+    }
+  }, [isFullscreen, settings.displayMode]);
 
   // キーボードイベントハンドラー
   const handleKeyDown = useCallback(
@@ -560,6 +659,13 @@ const App: React.FC = () => {
           // 両方の値を一度に更新
           updateTimerBoth(newMinutes, newSeconds);
         }
+      }
+
+      // Cmd+Enter (Mac) / Ctrl+Enter (Windows/Linux) でフルスクリーン切り替え
+      else if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        handleFullscreenToggle();
+        return;
       }
 
       // S、Space、EnterキーでSTART/PAUSE操作
@@ -616,17 +722,35 @@ const App: React.FC = () => {
               height = 100;
             }
 
+            const currentWindow = getCurrentWindow();
+
+            // フルスクリーン中はモード切り替え時に解除
+            if (isFullscreen) {
+              setIsFullscreen(false);
+              // 保存しておいた位置に戻す
+              if (savedWindowGeometryRef.current) {
+                const { x, y } = savedWindowGeometryRef.current;
+                await currentWindow.setPosition(new PhysicalPosition(x, y));
+                savedWindowGeometryRef.current = null;
+              }
+            }
+
+            // サイズ制約を一旦解除してからリサイズ
+            await currentWindow.setMinSize(null);
+            await currentWindow.setMaxSize(null);
             await invoke("set_window_size", { width, height });
 
-            // ウィンドウのリサイズを無効化
-            await invoke("set_window_resizable", { resizable: false });
+            // min/maxサイズ制約でリサイズを防止
+            const size = new LogicalSize(width, height);
+            await currentWindow.setMinSize(size);
+            await currentWindow.setMaxSize(size);
           } catch (error) {
             console.error("Failed to set window size:", error);
           }
         }
       }
     },
-    [timerState, startTimer, pauseTimer, resetTimer, updateTimerBoth, settings, stopAlarm]
+    [timerState, startTimer, pauseTimer, resetTimer, updateTimerBoth, settings, stopAlarm, handleFullscreenToggle, isFullscreen]
   );
 
   // キーボードイベントリスナーの設定
@@ -679,7 +803,7 @@ const App: React.FC = () => {
 
   return (
     <div
-      className={`app ${settings.darkMode ? "dark" : "light"} ${settings.displayMode === "compact" ? "compact" : ""} ${settings.displayMode === "minimal" ? "minimal" : ""}`}
+      className={`app ${settings.darkMode ? "dark" : "light"} ${settings.displayMode === "compact" ? "compact" : ""} ${settings.displayMode === "minimal" ? "minimal" : ""} ${isFullscreen ? "fullscreen" : ""}`}
       onMouseDown={handleDragStart}
       onMouseUp={handleMouseUp}
     >
@@ -706,6 +830,17 @@ const App: React.FC = () => {
          settings.displayMode === "compact" ? "⧉" :
          "⊞"}
       </button>
+
+      {/* フルスクリーン切り替えボタン（右上） - 簡易モードのみ表示 */}
+      {settings.displayMode === "compact" && (
+        <button
+          className="fullscreen-toggle-button"
+          onClick={handleFullscreenToggle}
+          title={isFullscreen ? "ウィンドウモードに戻す" : "フルスクリーン"}
+        >
+          {isFullscreen ? "⤡" : "⤢"}
+        </button>
+      )}
 
       {/* 情報アイコンボタン（右下） - 通常モードと簡易モードのみ表示 */}
       {settings.displayMode !== "minimal" && (

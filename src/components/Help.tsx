@@ -12,6 +12,7 @@ const Help: React.FC<HelpProps> = ({ onClose }) => {
     { key: "Enter", description: "Start/Pause timer" },
     { key: "R", description: "Reset timer" },
     { key: "V", description: "Toggle compact mode" },
+    { key: "Cmd/Ctrl+Enter", description: "Toggle fullscreen" },
   ];
 
   return (
