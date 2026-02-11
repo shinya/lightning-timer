@@ -9,9 +9,9 @@ use tauri::{AppHandle, Manager, WindowEvent};
 use tauri_plugin_store::Builder as StoreBuilder;
 
 #[cfg(target_os = "macos")]
-use objc2_app_kit::NSApplication;
-#[cfg(target_os = "macos")]
 use objc2::MainThreadMarker;
+#[cfg(target_os = "macos")]
+use objc2_app_kit::NSApplication;
 
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct WindowState {
