@@ -66,9 +66,10 @@ echo "設定を元に戻しています..."
 mv src-tauri/tauri.conf.json.backup src-tauri/tauri.conf.json
 rm -f src-tauri/tauri.conf.json.tmp
 
-# ビルド成果物の確認
+# ビルド成果物の確認（バージョンはtauri.conf.jsonから取得）
+APP_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
 APP_PATH="src-tauri/target/universal-apple-darwin/release/bundle/macos/Lightning Timer.app"
-DMG_PATH="src-tauri/target/universal-apple-darwin/release/bundle/dmg/Lightning Timer_0.2.0_universal.dmg"
+DMG_PATH="src-tauri/target/universal-apple-darwin/release/bundle/dmg/Lightning Timer_${APP_VERSION}_universal.dmg"
 
 if [ ! -d "$APP_PATH" ]; then
     echo "アプリケーションファイルが見つかりません: $APP_PATH"

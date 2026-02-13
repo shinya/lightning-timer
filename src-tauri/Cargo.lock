@@ -1677,7 +1677,7 @@ dependencies = [
 
 [[package]]
 name = "lightning-timer"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "dirs 5.0.1",
  "objc2 0.6.2",

@@ -92,8 +92,9 @@ npm run build
 echo "Rustアプリケーションをビルド中..."
 npm run tauri:build -- --target x86_64-pc-windows-gnu
 
-# セットアップファイルの生成を確認
-SETUP_FILE="src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/Lightning Timer_0.2.0_x64-setup.exe"
+# セットアップファイルの生成を確認（バージョンはtauri.conf.jsonから取得）
+APP_VERSION=$(grep '"version"' src-tauri/tauri.conf.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
+SETUP_FILE="src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/Lightning Timer_${APP_VERSION}_x64-setup.exe"
 if [ -f "$SETUP_FILE" ]; then
     echo "セットアップファイルが正常に生成されました"
 else
@@ -105,6 +106,6 @@ echo "Windows版ビルドが完了しました！"
 echo ""
 echo "ビルド成果物:"
 echo "  実行ファイル: src-tauri/target/x86_64-pc-windows-gnu/release/lightning-timer.exe"
-echo "  インストーラー: src-tauri/target/x86_64-pc-windows-gnu/release/bundle/nsis/Lightning Timer_0.2.0_x64-setup.exe"
+echo "  インストーラー: $SETUP_FILE"
 echo ""
 echo "ビルドが正常に完了しました！"
