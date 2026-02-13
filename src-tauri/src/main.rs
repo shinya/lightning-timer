@@ -8,6 +8,11 @@ use std::net::{SocketAddr, TcpListener};
 use tauri::{AppHandle, Manager, WindowEvent};
 use tauri_plugin_store::Builder as StoreBuilder;
 
+#[cfg(target_os = "macos")]
+use objc2::MainThreadMarker;
+#[cfg(target_os = "macos")]
+use objc2_app_kit::NSApplication;
+
 #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct WindowState {
     x: Option<i32>,
@@ -81,6 +86,37 @@ fn restore_window_state(window: &tauri::WebviewWindow) -> Result<(), Box<dyn std
     println!("DEBUG: Window size is fixed, not restoring");
 
     Ok(())
+}
+
+/// macOSでネイティブAPIを使ってウィンドウとWKWebViewにフォーカスを強制的に戻すヘルパー関数
+fn force_focus_window(window: &tauri::WebviewWindow) {
+    let _ = window.show();
+
+    #[cfg(target_os = "macos")]
+    {
+        let _ = window.with_webview(|webview| unsafe {
+            let mtm = MainThreadMarker::new_unchecked();
+            let ns_app = NSApplication::sharedApplication(mtm);
+            #[allow(deprecated)]
+            ns_app.activateIgnoringOtherApps(true);
+
+            let ns_window: &objc2_app_kit::NSWindow =
+                &*(webview.ns_window() as *const objc2_app_kit::NSWindow);
+            ns_window.makeKeyAndOrderFront(None);
+
+            // WKWebViewをFirst Responderに設定してキーボードイベントを受け取れるようにする
+            let wk_webview = webview.inner();
+            let responder = &*(wk_webview as *const objc2_app_kit::NSResponder);
+            ns_window.makeFirstResponder(Some(responder));
+            println!("DEBUG: WKWebView set as first responder");
+        });
+        println!("DEBUG: macOS native force focus applied");
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = window.set_focus();
+    }
 }
 
 #[tauri::command]
@@ -187,11 +223,8 @@ async fn set_window_resizable(app: AppHandle, resizable: bool) -> Result<(), Str
 #[tauri::command]
 async fn focus_window(app: AppHandle) -> Result<(), String> {
     if let Some(window) = app.get_webview_window("main") {
-        if let Err(e) = window.set_focus() {
-            println!("DEBUG: Failed to focus window: {}", e);
-            return Err(format!("Failed to focus window: {}", e));
-        }
-        println!("DEBUG: Window focused");
+        force_focus_window(&window);
+        println!("DEBUG: Window force-focused");
     }
     Ok(())
 }

@@ -1680,6 +1680,8 @@ name = "lightning-timer"
 version = "0.2.0"
 dependencies = [
  "dirs 5.0.1",
+ "objc2 0.6.2",
+ "objc2-app-kit",
  "serde",
  "serde_json",
  "tauri",
