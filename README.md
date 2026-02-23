@@ -1,5 +1,7 @@
 # Lightning Timer
 
+![screen view](https://raw.githubusercontent.com/shinya/image-storage/refs/heads/master/lightning-timer/screen.png)
+
 A lightweight, cross-platform timer application built with Tauri, React, and TypeScript.
 
 ## Features
