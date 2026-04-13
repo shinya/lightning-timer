@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightning Timer Overlay</title>
+    <style>
+        @font-face {
+            font-family: 'MesloPowerline';
+            src: url('/fonts/Meslo-LG-S-Regular-for-Powerline.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            background: transparent !important;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        :root {
+            --layer-color: #00ff66;
+            --layer-font-size: 6rem;
+            --layer-shadow:
+                0 0 8px rgba(0, 0, 0, 0.9),
+                0 0 16px rgba(0, 0, 0, 0.7),
+                0 2px 4px rgba(0, 0, 0, 1);
+        }
+
+        .time {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'MesloPowerline', 'Menlo', 'Courier New', monospace;
+            font-size: var(--layer-font-size);
+            font-weight: bold;
+            color: var(--layer-color);
+            text-shadow: var(--layer-shadow);
+            letter-spacing: 0.05em;
+            line-height: 1;
+        }
+
+        .time.timeup {
+            animation: flash 0.6s ease-in-out infinite alternate;
+        }
+
+        @keyframes flash {
+            from { opacity: 0.6; }
+            to   { opacity: 1.0; }
+        }
+    </style>
+</head>
+<body>
+    <div id="time" class="time">00:00</div>
+
+    <script type="module">
+        const { emitTo, listen } = window.__TAURI__.event;
+
+        const el = document.getElementById('time');
+
+        function pad(n) {
+            return n.toString().padStart(2, '0');
+        }
+
+        function render(minutes, seconds, showTimeUp) {
+            el.classList.toggle('timeup', !!showTimeUp);
+            if (showTimeUp) {
+                el.textContent = 'TIME UP';
+            } else {
+                el.textContent = `${pad(minutes)}:${pad(seconds)}`;
+            }
+        }
+
+        // 非同期 IIFE で listen 登録完了を待ってから layer-ready を送信
+        (async () => {
+            try {
+                await listen('layer-timer-update', (event) => {
+                    const { minutes, seconds, showTimeUp } = event.payload;
+                    render(minutes, seconds, showTimeUp);
+                });
+                await emitTo('main', 'layer-ready');
+                console.log('[layer] listeners registered, layer-ready emitted');
+            } catch (e) {
+                console.error('[layer] init failed:', e);
+            }
+        })();
+    </script>
+</body>
+</html>

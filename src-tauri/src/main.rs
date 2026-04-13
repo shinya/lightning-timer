@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 #[cfg(not(debug_assertions))]
 use std::net::{SocketAddr, TcpListener};
-use tauri::{AppHandle, Manager, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_store::Builder as StoreBuilder;
 
 #[cfg(target_os = "macos")]
@@ -356,6 +356,396 @@ async fn show_timeup_window(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+/// macOSで透過オーバーレイウィンドウを他アプリのフルスクリーン Space 上にも表示するように設定する。
+///
+/// - `panel_nonactivating = true` : NSPanel へクラススワップして nonactivating にする
+///   (layer 本体。クリックスルーで入力不要なので副作用なし。フルスクリーンアプリ上に出る)
+/// - `panel_nonactivating = false` : NSWindow のまま level と collectionBehavior のみ設定
+///   (layer_ctrl。NSPanel 化すると webview にクリックイベントが届かなくなるため。
+///   他アプリのフルスクリーン Space には出ないが、クリック可能)
+#[cfg(target_os = "macos")]
+fn apply_macos_overlay_behavior(window: &tauri::WebviewWindow, panel_nonactivating: bool) {
+    use objc2::msg_send;
+    use objc2::runtime::AnyClass;
+
+    let label = window.label().to_string();
+    let _ = window.with_webview(move |webview| unsafe {
+        let ns_window_ptr = webview.ns_window() as *mut objc2::runtime::AnyObject;
+        if ns_window_ptr.is_null() {
+            println!("DEBUG[{}]: ns_window pointer is null", label);
+            return;
+        }
+
+        if panel_nonactivating {
+            // NSWindow -> NSPanel へクラススワップ
+            if let Some(panel_class) = AnyClass::get(c"NSPanel") {
+                extern "C" {
+                    fn object_setClass(
+                        obj: *mut objc2::runtime::AnyObject,
+                        cls: *const objc2::runtime::AnyClass,
+                    ) -> *const objc2::runtime::AnyClass;
+                }
+                object_setClass(ns_window_ptr, panel_class);
+                println!("DEBUG[{}]: NSWindow -> NSPanel class swap done", label);
+            }
+
+            // NonactivatingPanel スタイルマスク追加
+            let current_mask: usize = msg_send![ns_window_ptr, styleMask];
+            let new_mask = current_mask | (1usize << 7);
+            let _: () = msg_send![ns_window_ptr, setStyleMask: new_mask];
+
+            let _: () = msg_send![ns_window_ptr, setFloatingPanel: true];
+            let _: () = msg_send![ns_window_ptr, setHidesOnDeactivate: false];
+        }
+
+        // CanJoinAllSpaces | Stationary | FullScreenAuxiliary
+        let behavior: usize = (1 << 0) | (1 << 4) | (1 << 8);
+        let _: () = msg_send![ns_window_ptr, setCollectionBehavior: behavior];
+
+        let level: isize = 1000;
+        let _: () = msg_send![ns_window_ptr, setLevel: level];
+
+        let applied_level: isize = msg_send![ns_window_ptr, level];
+        let applied_mask: usize = msg_send![ns_window_ptr, styleMask];
+        let applied_behavior: usize = msg_send![ns_window_ptr, collectionBehavior];
+        println!(
+            "DEBUG[{}]: overlay applied (panel_nonactivating={}, level={}, styleMask=0x{:x}, collectionBehavior=0x{:x})",
+            label, panel_nonactivating, applied_level, applied_mask, applied_behavior
+        );
+    });
+}
+
+/// レイヤーディスプレイウィンドウの既定位置とサイズ（論理ピクセル・グローバル座標）を計算する。
+/// 複数モニター環境では main ウィンドウが乗っているモニターを優先する
+fn layer_default_geometry(app: &AppHandle) -> (f64, f64, f64, f64) {
+    let layer_width = 320.0;
+    let layer_height = 120.0;
+    if let Some(main) = app.get_webview_window("main") {
+        let monitor = main
+            .current_monitor()
+            .ok()
+            .flatten()
+            .or_else(|| main.primary_monitor().ok().flatten());
+        if let Some(monitor) = monitor {
+            let pos = monitor.position();
+            let size = monitor.size();
+            let scale = monitor.scale_factor();
+            let origin_x = pos.x as f64 / scale;
+            let origin_y = pos.y as f64 / scale;
+            let screen_w = size.width as f64 / scale;
+            let x = origin_x + screen_w - layer_width - 40.0;
+            let y = origin_y + 40.0;
+            return (x, y, layer_width, layer_height);
+        }
+    }
+    (1200.0, 40.0, layer_width, layer_height)
+}
+
+/// 操作ハンドルの位置を元にディスプレイウィンドウの位置を同期する
+fn sync_layer_to_ctrl(app: &AppHandle) {
+    let ctrl = match app.get_webview_window("layer_ctrl") {
+        Some(w) => w,
+        None => return,
+    };
+    let layer = match app.get_webview_window("layer") {
+        Some(w) => w,
+        None => return,
+    };
+    let ctrl_pos = match ctrl.outer_position() {
+        Ok(p) => p,
+        Err(_) => return,
+    };
+    let ctrl_size = match ctrl.outer_size() {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    let layer_size = match layer.outer_size() {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    // 操作ハンドルの直上にディスプレイを中心合わせで配置
+    let gap_physical: i32 = 8;
+    let new_x = ctrl_pos.x + (ctrl_size.width as i32) / 2 - (layer_size.width as i32) / 2;
+    let new_y = ctrl_pos.y - (layer_size.height as i32) - gap_physical;
+    let _ = layer.set_position(tauri::Position::Physical(tauri::PhysicalPosition {
+        x: new_x,
+        y: new_y,
+    }));
+}
+
+#[tauri::command]
+async fn show_layer_window(app: AppHandle) -> Result<(), String> {
+    println!("DEBUG: show_layer_window called");
+
+    let (default_x, default_y, layer_w, layer_h) = layer_default_geometry(&app);
+    let ctrl_w: f64 = 80.0;
+    let ctrl_h: f64 = 28.0;
+    let ctrl_gap: f64 = 8.0;
+    let ctrl_x = default_x + (layer_w - ctrl_w) / 2.0;
+    let ctrl_y = default_y + layer_h + ctrl_gap;
+
+    // ディスプレイ用（透過・クリックスルー）
+    let layer_window = if let Some(w) = app.get_webview_window("layer") {
+        w.show().map_err(|e| format!("Failed to show layer: {}", e))?;
+        w
+    } else {
+        tauri::WebviewWindowBuilder::new(
+            &app,
+            "layer",
+            tauri::WebviewUrl::App("layer.html".into()),
+        )
+        .title("Lightning Timer Overlay")
+        .inner_size(layer_w, layer_h)
+        .position(default_x, default_y)
+        .resizable(false)
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .focused(false)
+        .visible(true)
+        .build()
+        .map_err(|e| format!("Failed to create layer window: {}", e))?
+    };
+
+    // クリックスルー有効化
+    if let Err(e) = layer_window.set_ignore_cursor_events(true) {
+        println!("DEBUG: Failed to set ignore_cursor_events: {}", e);
+    }
+
+    #[cfg(target_os = "macos")]
+    apply_macos_overlay_behavior(&layer_window, true);
+
+    // 操作ハンドル（非クリックスルー・ドラッグ + 閉じる）
+    let ctrl_window = if let Some(w) = app.get_webview_window("layer_ctrl") {
+        w.show().map_err(|e| format!("Failed to show layer_ctrl: {}", e))?;
+        w
+    } else {
+        tauri::WebviewWindowBuilder::new(
+            &app,
+            "layer_ctrl",
+            tauri::WebviewUrl::App("layer_ctrl.html".into()),
+        )
+        .title("Lightning Timer Controls")
+        .inner_size(ctrl_w, ctrl_h)
+        .position(ctrl_x, ctrl_y)
+        .resizable(false)
+        .decorations(false)
+        .transparent(true)
+        .shadow(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .visible(true)
+        .build()
+        .map_err(|e| format!("Failed to create layer_ctrl window: {}", e))?
+    };
+
+    #[cfg(target_os = "macos")]
+    apply_macos_overlay_behavior(&ctrl_window, false);
+
+    // 初期位置同期
+    sync_layer_to_ctrl(&app);
+
+    Ok(())
+}
+
+/// 16進カラー文字列のサニタイズ。妥当でなければ既定値を返す
+fn sanitize_hex_color(color: &str) -> String {
+    let trimmed = color.trim();
+    if trimmed.starts_with('#')
+        && (trimmed.len() == 4 || trimmed.len() == 7 || trimmed.len() == 9)
+        && trimmed[1..].chars().all(|c| c.is_ascii_hexdigit())
+    {
+        trimmed.to_string()
+    } else {
+        "#00ff66".to_string()
+    }
+}
+
+#[tauri::command]
+async fn update_layer_timer(
+    app: AppHandle,
+    minutes: u32,
+    seconds: u32,
+    show_time_up: bool,
+) -> Result<(), String> {
+    if let Some(layer) = app.get_webview_window("layer") {
+        // min/max で値を妥当な範囲に丸める
+        let m = minutes.min(99);
+        let s = seconds.min(99);
+        let content = if show_time_up {
+            "TIME UP".to_string()
+        } else {
+            format!("{:02}:{:02}", m, s)
+        };
+        let class_op = if show_time_up { "add" } else { "remove" };
+        let script = format!(
+            "(function(){{var el=document.getElementById('time');if(!el)return;el.textContent='{}';el.classList.{}('timeup');}})();",
+            content, class_op
+        );
+        if let Err(e) = layer.eval(&script) {
+            println!("DEBUG: Failed to eval layer timer: {}", e);
+            return Err(format!("Failed to update layer timer: {}", e));
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn update_layer_style(
+    app: AppHandle,
+    color: String,
+    shadow: String,
+    font_size: f64,
+) -> Result<(), String> {
+    let safe_color = sanitize_hex_color(&color);
+    let shadow_value = if shadow == "light" {
+        "0 0 8px rgba(255,255,255,0.95), 0 0 16px rgba(255,255,255,0.8), 0 2px 4px rgba(255,255,255,1)"
+    } else {
+        "0 0 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.7), 0 2px 4px rgba(0,0,0,1)"
+    };
+    let safe_font_size = font_size.clamp(1.0, 20.0);
+
+    if let Some(layer) = app.get_webview_window("layer") {
+        let script = format!(
+            "(function(){{var r=document.documentElement;r.style.setProperty('--layer-color','{}');r.style.setProperty('--layer-shadow','{}');r.style.setProperty('--layer-font-size','{}rem');console.log('[layer] style set via eval',r.style.getPropertyValue('--layer-color'),r.style.getPropertyValue('--layer-font-size'));}})();",
+            safe_color, shadow_value, safe_font_size
+        );
+        if let Err(e) = layer.eval(&script) {
+            println!("DEBUG: Failed to eval layer style: {}", e);
+            return Err(format!("Failed to update layer style: {}", e));
+        }
+        println!(
+            "DEBUG: Layer style updated color={} shadow={} fontSize={}rem",
+            safe_color, shadow, safe_font_size
+        );
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn hide_layer_window(app: AppHandle) -> Result<(), String> {
+    println!("DEBUG: hide_layer_window called");
+    if let Some(w) = app.get_webview_window("layer") {
+        match w.hide() {
+            Ok(()) => println!("DEBUG: layer window hidden"),
+            Err(e) => println!("DEBUG: Failed to hide layer window: {}", e),
+        }
+    } else {
+        println!("DEBUG: layer window not found");
+    }
+    if let Some(w) = app.get_webview_window("layer_ctrl") {
+        match w.hide() {
+            Ok(()) => println!("DEBUG: layer_ctrl window hidden"),
+            Err(e) => println!("DEBUG: Failed to hide layer_ctrl window: {}", e),
+        }
+    } else {
+        println!("DEBUG: layer_ctrl window not found");
+    }
+    Ok(())
+}
+
+/// layer_ctrl の × ボタンから呼ばれる。
+/// 1 度の invoke で hide + main 通知までまとめて実行する。
+/// (JS 側で invoke → emitTo の 2 段にすると layer_ctrl 自体が消えてから emit するため
+/// イベントが失われていた)
+#[tauri::command]
+async fn exit_layer_mode(app: AppHandle) -> Result<(), String> {
+    println!("DEBUG: exit_layer_mode called");
+    // 先に main へ通知してから hide (順序が逆だと layer_ctrl のコンテキストが消える可能性がある)
+    if let Err(e) = app.emit_to(
+        tauri::EventTarget::webview_window("main"),
+        "layer-exit-requested",
+        (),
+    ) {
+        println!("DEBUG: Failed to emit layer-exit-requested: {}", e);
+    }
+    if let Some(w) = app.get_webview_window("layer") {
+        if let Err(e) = w.hide() {
+            println!("DEBUG: Failed to hide layer: {}", e);
+        }
+    }
+    if let Some(w) = app.get_webview_window("layer_ctrl") {
+        if let Err(e) = w.hide() {
+            println!("DEBUG: Failed to hide layer_ctrl: {}", e);
+        }
+    }
+    Ok(())
+}
+
+/// main ウィンドウが乗っているモニターの中心座標 (論理ピクセル) を計算する
+fn center_on_main_monitor(app: &AppHandle, width: f64, height: f64) -> (f64, f64) {
+    if let Some(main) = app.get_webview_window("main") {
+        let monitor = main
+            .current_monitor()
+            .ok()
+            .flatten()
+            .or_else(|| main.primary_monitor().ok().flatten());
+        if let Some(monitor) = monitor {
+            let pos = monitor.position();
+            let size = monitor.size();
+            let scale = monitor.scale_factor();
+            let origin_x = pos.x as f64 / scale;
+            let origin_y = pos.y as f64 / scale;
+            let screen_w = size.width as f64 / scale;
+            let screen_h = size.height as f64 / scale;
+            let x = origin_x + (screen_w - width) / 2.0;
+            let y = origin_y + (screen_h - height) / 2.0;
+            return (x, y);
+        }
+    }
+    (200.0, 200.0)
+}
+
+#[tauri::command]
+async fn show_settings_window(app: AppHandle) -> Result<(), String> {
+    println!("DEBUG: show_settings_window called");
+    let width = 540.0;
+    let height = 640.0;
+
+    if let Some(w) = app.get_webview_window("settings") {
+        // 既存ウィンドウは現在のモニターに移動してから表示
+        let (x, y) = center_on_main_monitor(&app, width, height);
+        let _ = w.set_position(tauri::Position::Logical(tauri::LogicalPosition { x, y }));
+        let _ = w.show();
+        let _ = w.unminimize();
+        let _ = w.set_focus();
+        return Ok(());
+    }
+
+    let (x, y) = center_on_main_monitor(&app, width, height);
+
+    let window = tauri::WebviewWindowBuilder::new(
+        &app,
+        "settings",
+        tauri::WebviewUrl::App("settings.html".into()),
+    )
+    .title("Lightning Timer Settings")
+    .inner_size(width, height)
+    .min_inner_size(420.0, 480.0)
+    .position(x, y)
+    .resizable(true)
+    .decorations(true)
+    .always_on_top(false)
+    .skip_taskbar(false)
+    .visible(true)
+    .build()
+    .map_err(|e| format!("Failed to create settings window: {}", e))?;
+
+    let _ = window.set_focus();
+    Ok(())
+}
+
+#[tauri::command]
+async fn hide_settings_window(app: AppHandle) -> Result<(), String> {
+    println!("DEBUG: hide_settings_window called");
+    if let Some(w) = app.get_webview_window("settings") {
+        let _ = w.hide();
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn hide_timeup_window(app: AppHandle) -> Result<(), String> {
     println!("DEBUG: hide_timeup_window command called");
@@ -391,22 +781,41 @@ fn main() {
             }
             Ok(())
         })
-               .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag, save_window_position, set_window_size, set_window_resizable, focus_window, get_available_port, show_timeup_window, hide_timeup_window])
+               .invoke_handler(tauri::generate_handler![open_devtools, save_timer_state_on_exit, exit_app, start_drag, save_window_position, set_window_size, set_window_resizable, focus_window, get_available_port, show_timeup_window, hide_timeup_window, show_layer_window, hide_layer_window, update_layer_style, update_layer_timer, exit_layer_mode, show_settings_window, hide_settings_window])
         .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { .. } = event {
-                // タイマー状態保存を促す
-                if let Some(main_window) = window.app_handle().get_webview_window("main") {
-                    let _ = main_window.eval("if (window.__TAURI__) { window.__TAURI__.core.invoke('save_timer_state_on_exit'); }");
-                }
+            match event {
+                WindowEvent::CloseRequested { api, .. } => {
+                    // settings ウィンドウは破棄せず非表示にして使い回す
+                    if window.label() == "settings" {
+                        api.prevent_close();
+                        let _ = window.hide();
+                        return;
+                    }
+                    // main ウィンドウが閉じられた場合のみアプリ全体を終了
+                    if window.label() != "main" {
+                        return;
+                    }
+                    // タイマー状態保存を促す
+                    if let Some(main_window) = window.app_handle().get_webview_window("main") {
+                        let _ = main_window.eval("if (window.__TAURI__) { window.__TAURI__.core.invoke('save_timer_state_on_exit'); }");
+                    }
 
-                // ウィンドウが閉じられる前に状態を保存
-                if let Some(main_window) = window.app_handle().get_webview_window("main") {
-                    if let Err(e) = save_window_state(&main_window) {
-                        println!("DEBUG: Failed to save window state: {}", e);
+                    // ウィンドウが閉じられる前に状態を保存
+                    if let Some(main_window) = window.app_handle().get_webview_window("main") {
+                        if let Err(e) = save_window_state(&main_window) {
+                            println!("DEBUG: Failed to save window state: {}", e);
+                        }
+                    }
+                    // メインウィンドウが閉じられた際にアプリケーション全体を終了
+                    std::process::exit(0);
+                }
+                WindowEvent::Moved(_) => {
+                    // 操作ハンドルが動いたらディスプレイも追従させる
+                    if window.label() == "layer_ctrl" {
+                        sync_layer_to_ctrl(window.app_handle());
                     }
                 }
-                // メインウィンドウが閉じられた際にアプリケーション全体を終了
-                std::process::exit(0);
+                _ => {}
             }
         })
         .run(tauri::generate_context!())

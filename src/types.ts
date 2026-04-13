@@ -13,6 +13,9 @@ export interface Settings {
   alarmVolume: number;
   displayMode: "normal" | "compact" | "minimal";
   showTimeUpWindow: boolean;
+  layerTextColor: string;
+  layerShadowStyle: "dark" | "light";
+  layerFontSize: number;
 }
 
 export interface TimerDisplayProps {
@@ -38,8 +41,3 @@ export interface TimerControlsProps {
   onAlarmVolumeChange: (volume: number) => void;
 }
 
-export interface SettingsProps {
-  settings: Settings;
-  onClose: () => void;
-  onSettingsChange: (settings: Settings) => void;
-}
