@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow, currentMonitor, LogicalSize, PhysicalPosition } from "@tauri-apps/api/window";
+import { listen } from "@tauri-apps/api/event";
 import { Store } from "@tauri-apps/plugin-store";
 import TimerDisplay from "./components/TimerDisplay";
 import TimerControls from "./components/TimerControls";
-import Settings from "./components/Settings";
 import Help from "./components/Help";
 import AboutInfo from "./components/AboutInfo";
 import { TimerState, Settings as SettingsType } from "./types";
+import { useTranslation } from "./i18n/useTranslation";
+import { initLanguage } from "./i18n";
+import type { LanguageSetting } from "./i18n";
 
 const App: React.FC = () => {
+  const { t, setLanguage: setI18nLanguage } = useTranslation();
+
   // Tauri APIの状態を確認
   useEffect(() => {
     // Tauri APIの初期化確認
@@ -37,6 +42,10 @@ const App: React.FC = () => {
     alarmVolume: 0.8,
     displayMode: "normal", // 常に通常モードで起動
     showTimeUpWindow: true, // デフォルトでTime Up画面を表示
+    layerTextColor: "#00ff66",
+    layerShadowStyle: "dark",
+    layerFontSize: 6,
+    language: "auto",
   });
 
   // TimeUP表示の状態管理
@@ -93,8 +102,16 @@ const App: React.FC = () => {
           darkMode: savedSettings.darkMode ?? false,
           alarmSound: savedSettings.alarmSound ?? "alarm.mp3",
           alarmVolume: savedSettings.alarmVolume ?? 0.8,
-          displayMode: savedSettings.displayMode ?? (savedSettings.compactMode ? "compact" : "normal"),
+          displayMode: (savedSettings.displayMode === "compact" || savedSettings.displayMode === "minimal" ? savedSettings.displayMode : (savedSettings.compactMode ? "compact" : "normal")),
           showTimeUpWindow: savedSettings.showTimeUpWindow ?? true,
+          layerTextColor: savedSettings.layerTextColor ?? "#00ff66",
+          layerShadowStyle: savedSettings.layerShadowStyle ?? "dark",
+          layerFontSize: typeof savedSettings.layerFontSize === "number" && savedSettings.layerFontSize > 0
+            ? savedSettings.layerFontSize
+            : 6,
+          language: savedSettings.language === "en" || savedSettings.language === "ja" || savedSettings.language === "auto"
+            ? savedSettings.language
+            : "auto",
         };
         setSettings(convertedSettings);
       }
@@ -115,16 +132,23 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const [showSettings, setShowSettings] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showAboutInfo, setShowAboutInfo] = useState(false);
+
+  const openSettings = useCallback(async () => {
+    if (!isTauri()) return;
+    try {
+      await invoke("show_settings_window");
+    } catch (err) {
+      console.error("Failed to open settings window:", err);
+    }
+  }, []);
 
   // 最後に設定した時間を記憶する状態
   const [lastSetTime, setLastSetTime] = useState<{
     minutes: number;
     seconds: number;
   } | null>(null);
-  const [hasNumberBeenEdited, setHasNumberBeenEdited] = useState(false);
   const timeUpWindowShownRef = useRef(false);
 
   const loadTimerState = useCallback(async () => {
@@ -275,9 +299,6 @@ const App: React.FC = () => {
 
       const totalSeconds = minutes * 60 + seconds;
 
-      // 数字が編集されたことを記録
-      setHasNumberBeenEdited(true);
-
       setTimerState((prev) => {
         const newState = {
           ...prev,
@@ -314,23 +335,20 @@ const App: React.FC = () => {
     // アラーム音を停止
     stopAlarm();
 
-    // 数字が編集されていた場合のみ、現在の時間を記憶
-    if (hasNumberBeenEdited) {
+    // 新規開始時（一時停止からの再開でない場合）は現在の時間を記憶
+    if (!timerState.isPaused) {
       setLastSetTime({
         minutes: timerState.minutes,
         seconds: timerState.seconds,
       });
-      setHasNumberBeenEdited(false); // フラグをリセット
     }
-
-    // タイマー開始時の処理（フラグ管理を削除）
 
     setTimerState((prev) => ({
       ...prev,
       isRunning: true,
       isPaused: false,
     }));
-  }, [hasNumberBeenEdited, timerState.minutes, timerState.seconds, stopAlarm]);
+  }, [timerState.minutes, timerState.seconds, timerState.isPaused, stopAlarm]);
 
   const pauseTimer = useCallback(() => {
     setTimerState((prev) => ({
@@ -349,7 +367,6 @@ const App: React.FC = () => {
 
     // リセット時に記憶もクリア
     setLastSetTime(null);
-    setHasNumberBeenEdited(false);
 
     setTimerState((prev) => ({
       ...prev,
@@ -422,25 +439,25 @@ const App: React.FC = () => {
     };
   }, [timerState.minutes, timerState.seconds, lastSetTime]);
 
-  // 設定変更を処理する関数
-  const handleSettingsChange = useCallback(
+  // 設定ウィンドウから配信された設定を反映する（保存はせず副作用は useEffect で吸収）
+  const applyExternalSettings = useCallback(
     async (newSettings: SettingsType) => {
-      // Always on topの設定を適用
-      if (isTauri() && newSettings.alwaysOnTop !== settings.alwaysOnTop) {
-        try {
-          const currentWindow = getCurrentWindow();
-          await currentWindow.setAlwaysOnTop(newSettings.alwaysOnTop);
-        } catch (error) {
-          console.error("Failed to set always on top:", error);
-        }
-      }
-
       setSettings(newSettings);
-      // 設定を保存
-      await saveSettings(newSettings);
+      // 言語が変わった場合はi18nも同期
+      initLanguage(newSettings.language);
+      setI18nLanguage(newSettings.language as LanguageSetting);
     },
-    [settings.alwaysOnTop, saveSettings]
+    [setI18nLanguage]
   );
+
+  // alwaysOnTop はストア起動読み込み時にも外部変更時にも自動で OS 側へ反映
+  useEffect(() => {
+    if (!isTauri()) return;
+    const currentWindow = getCurrentWindow();
+    currentWindow.setAlwaysOnTop(settings.alwaysOnTop).catch((error) => {
+      console.error("Failed to apply alwaysOnTop:", error);
+    });
+  }, [settings.alwaysOnTop]);
 
   const handlePowerButtonClick = async () => {
     if (isTauri()) {
@@ -487,40 +504,24 @@ const App: React.FC = () => {
     }
   };
 
-  const handleCompactModeToggle = useCallback(async () => {
-    // 通常 → 簡易 → ミニマム → 通常の順で循環
-    const nextMode: "normal" | "compact" | "minimal" =
-      settings.displayMode === "normal" ? "compact" :
-      settings.displayMode === "compact" ? "minimal" :
-      "normal";
+  // 表示モード遷移の共通ロジック
+  const transitionToMode = useCallback(
+    async (nextMode: "normal" | "compact" | "minimal") => {
+      const prevMode = settings.displayMode;
+      if (prevMode === nextMode) return;
 
-    const newSettings = { ...settings, displayMode: nextMode };
-    setSettings(newSettings);
-    // 表示モードの状態は保存しない
+      const newSettings = { ...settings, displayMode: nextMode };
+      setSettings(newSettings);
+      // 表示モードの状態は保存しない
 
-    // ウィンドウサイズを変更
-    if (isTauri()) {
+      if (!isTauri()) return;
+
+      const currentWindow = getCurrentWindow();
+
       try {
-        let width: number;
-        let height: number;
-
-        if (nextMode === "normal") {
-          width = 800;
-          height = 200;
-        } else if (nextMode === "compact") {
-          width = 400;
-          height = 200;
-        } else { // minimal
-          width = 200;
-          height = 100;
-        }
-
-        const currentWindow = getCurrentWindow();
-
         // フルスクリーン中はモード切り替え時に解除
         if (isFullscreen) {
           setIsFullscreen(false);
-          // 保存しておいた位置に戻す
           if (savedWindowGeometryRef.current) {
             const { x, y } = savedWindowGeometryRef.current;
             await currentWindow.setPosition(new PhysicalPosition(x, y));
@@ -528,20 +529,62 @@ const App: React.FC = () => {
           }
         }
 
-        // サイズ制約を一旦解除してからリサイズ
+        let width: number;
+        let height: number;
+        if (nextMode === "normal") {
+          width = 800;
+          height = 200;
+        } else if (nextMode === "compact") {
+          width = 400;
+          height = 200;
+        } else {
+          // minimal
+          width = 200;
+          height = 100;
+        }
+
         await currentWindow.setMinSize(null);
         await currentWindow.setMaxSize(null);
         await invoke("set_window_size", { width, height });
-
-        // min/maxサイズ制約でリサイズを防止
         const size = new LogicalSize(width, height);
         await currentWindow.setMinSize(size);
         await currentWindow.setMaxSize(size);
       } catch (error) {
-        console.error("Failed to set window size:", error);
+        console.error("Failed to transition display mode:", error);
       }
+    },
+    [settings, isFullscreen]
+  );
+
+  const handleCompactModeToggle = useCallback(async () => {
+    // 通常 → 簡易 → ミニマム → 通常の順で循環
+    const nextMode: "normal" | "compact" | "minimal" =
+      settings.displayMode === "normal" ? "compact" :
+      settings.displayMode === "compact" ? "minimal" :
+      "normal";
+    await transitionToMode(nextMode);
+  }, [settings.displayMode, transitionToMode]);
+
+  // レイヤー表示の有効/無効（永続化しない）
+  const [layerEnabled, setLayerEnabled] = useState(false);
+
+  const toggleLayer = useCallback(async () => {
+    if (!isTauri()) {
+      setLayerEnabled((v) => !v);
+      return;
     }
-  }, [settings, isFullscreen]);
+    const next = !layerEnabled;
+    try {
+      if (next) {
+        await invoke("show_layer_window");
+      } else {
+        await invoke("hide_layer_window");
+      }
+      setLayerEnabled(next);
+    } catch (error) {
+      console.error("Failed to toggle layer:", error);
+    }
+  }, [layerEnabled]);
 
   // フルスクリーン切り替え（手動フルスクリーン：ネイティブのsetFullscreenはmacOSデュアルディスプレイで問題があるため使わない）
   const handleFullscreenToggle = useCallback(async () => {
@@ -695,62 +738,20 @@ const App: React.FC = () => {
       // Vキーで表示モード切り替え（通常 → 簡易 → ミニマム → 通常）
       else if (key === "v") {
         event.preventDefault();
-
-        // 通常 → 簡易 → ミニマム → 通常の順で循環
         const nextMode: "normal" | "compact" | "minimal" =
           settings.displayMode === "normal" ? "compact" :
           settings.displayMode === "compact" ? "minimal" :
           "normal";
+        await transitionToMode(nextMode);
+      }
 
-        const newSettings = { ...settings, displayMode: nextMode };
-        setSettings(newSettings);
-
-        // ウィンドウサイズを変更
-        if (isTauri()) {
-          try {
-            let width: number;
-            let height: number;
-
-            if (nextMode === "normal") {
-              width = 800;
-              height = 200;
-            } else if (nextMode === "compact") {
-              width = 400;
-              height = 200;
-            } else { // minimal
-              width = 200;
-              height = 100;
-            }
-
-            const currentWindow = getCurrentWindow();
-
-            // フルスクリーン中はモード切り替え時に解除
-            if (isFullscreen) {
-              setIsFullscreen(false);
-              // 保存しておいた位置に戻す
-              if (savedWindowGeometryRef.current) {
-                const { x, y } = savedWindowGeometryRef.current;
-                await currentWindow.setPosition(new PhysicalPosition(x, y));
-                savedWindowGeometryRef.current = null;
-              }
-            }
-
-            // サイズ制約を一旦解除してからリサイズ
-            await currentWindow.setMinSize(null);
-            await currentWindow.setMaxSize(null);
-            await invoke("set_window_size", { width, height });
-
-            // min/maxサイズ制約でリサイズを防止
-            const size = new LogicalSize(width, height);
-            await currentWindow.setMinSize(size);
-            await currentWindow.setMaxSize(size);
-          } catch (error) {
-            console.error("Failed to set window size:", error);
-          }
-        }
+      // Lキーでレイヤー表示の ON/OFF 切り替え
+      else if (key === "l") {
+        event.preventDefault();
+        await toggleLayer();
       }
     },
-    [timerState, startTimer, pauseTimer, resetTimer, updateTimerBoth, settings, stopAlarm, handleFullscreenToggle, isFullscreen]
+    [timerState, startTimer, pauseTimer, resetTimer, updateTimerBoth, settings.displayMode, stopAlarm, handleFullscreenToggle, transitionToMode, toggleLayer]
   );
 
   // キーボードイベントリスナーの設定
@@ -801,6 +802,101 @@ const App: React.FC = () => {
     };
   }, [stopAlarm]);
 
+  // レイヤー表示中、タイマー状態をオーバーレイへ直接反映 (webview.eval 経由)
+  useEffect(() => {
+    if (!isTauri()) return;
+    if (!layerEnabled) return;
+
+    invoke("update_layer_timer", {
+      minutes: timerState.minutes,
+      seconds: timerState.seconds,
+      showTimeUp,
+    }).catch((error) => {
+      console.error("Failed to update layer timer:", error);
+    });
+  }, [
+    layerEnabled,
+    timerState.minutes,
+    timerState.seconds,
+    showTimeUp,
+  ]);
+
+  // レイヤー表示中、文字色・影スタイルの変更を反映
+  // (event だと到達しないことがあるため Rust の webview.eval で直接更新)
+  useEffect(() => {
+    if (!isTauri()) return;
+    if (!layerEnabled) return;
+
+    invoke("update_layer_style", {
+      color: settings.layerTextColor,
+      shadow: settings.layerShadowStyle,
+      fontSize: settings.layerFontSize,
+    }).catch((error) => {
+      console.error("Failed to update layer style:", error);
+    });
+  }, [layerEnabled, settings.layerTextColor, settings.layerShadowStyle, settings.layerFontSize]);
+
+  // レイヤーウィンドウからの退出要求を受信
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const unlistenPromise = listen("layer-exit-requested", () => {
+      invoke("hide_layer_window").catch(() => {});
+      setLayerEnabled(false);
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten()).catch(() => {});
+    };
+  }, []);
+
+  // 設定ウィンドウからの設定変更を反映
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const unlistenPromise = listen<SettingsType>("settings-changed", (event) => {
+      applyExternalSettings(event.payload);
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten()).catch(() => {});
+    };
+  }, [applyExternalSettings]);
+
+  // レイヤーウィンドウ初期化時に現在値とスタイルを即時送信
+  useEffect(() => {
+    if (!isTauri()) return;
+
+    const unlistenPromise = listen("layer-ready", () => {
+      invoke("update_layer_style", {
+        color: settings.layerTextColor,
+        shadow: settings.layerShadowStyle,
+        fontSize: settings.layerFontSize,
+      }).catch((error) => {
+        console.error("Failed to update layer style on ready:", error);
+      });
+      invoke("update_layer_timer", {
+        minutes: timerState.minutes,
+        seconds: timerState.seconds,
+        showTimeUp,
+      }).catch((error) => {
+        console.error("Failed to update layer timer on ready:", error);
+      });
+    });
+
+    return () => {
+      unlistenPromise.then((unlisten) => unlisten()).catch(() => {});
+    };
+  }, [
+    timerState.minutes,
+    timerState.seconds,
+    timerState.isRunning,
+    showTimeUp,
+    settings.layerTextColor,
+    settings.layerShadowStyle,
+    settings.layerFontSize,
+  ]);
+
   return (
     <div
       className={`app ${settings.darkMode ? "dark" : "light"} ${settings.displayMode === "compact" ? "compact" : ""} ${settings.displayMode === "minimal" ? "minimal" : ""} ${isFullscreen ? "fullscreen" : ""}`}
@@ -811,7 +907,7 @@ const App: React.FC = () => {
       <button
         className="power-button"
         onClick={handlePowerButtonClick}
-        title="アプリケーションを終了"
+        title={t("tooltips.exitApp")}
       >
         <img src="/icon/power.svg" width="16" height="16" alt="Power" />
       </button>
@@ -821,14 +917,38 @@ const App: React.FC = () => {
         className="compact-toggle-button"
         onClick={handleCompactModeToggle}
         title={
-          settings.displayMode === "normal" ? "簡易表示モード" :
-          settings.displayMode === "compact" ? "ミニマム表示モード" :
-          "通常表示に戻す"
+          settings.displayMode === "normal" ? t("tooltips.compactMode") :
+          settings.displayMode === "compact" ? t("tooltips.minimalMode") :
+          t("tooltips.normalMode")
         }
       >
-        {settings.displayMode === "normal" ? "⊡" :
-         settings.displayMode === "compact" ? "⧉" :
-         "⊞"}
+        {settings.displayMode === "normal" ? (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="1" y="3" width="14" height="10" rx="1.5" />
+            <line x1="1" y1="6" x2="15" y2="6" />
+          </svg>
+        ) : settings.displayMode === "compact" ? (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="3" y="4" width="10" height="8" rx="1.5" />
+            <line x1="3" y1="7" x2="13" y2="7" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="5" y="5" width="6" height="6" rx="1" />
+          </svg>
+        )}
+      </button>
+
+      {/* レイヤー表示 ON/OFF ボタン */}
+      <button
+        className={`layer-toggle-button${layerEnabled ? " active" : ""}`}
+        onClick={toggleLayer}
+        title={layerEnabled ? t("tooltips.layerOff") : t("tooltips.layerOn")}
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="1" y="4" width="10" height="8" rx="1" />
+          <rect x="5" y="1" width="10" height="8" rx="1" />
+        </svg>
       </button>
 
       {/* フルスクリーン切り替えボタン（右上） - 簡易モードのみ表示 */}
@@ -836,9 +956,23 @@ const App: React.FC = () => {
         <button
           className="fullscreen-toggle-button"
           onClick={handleFullscreenToggle}
-          title={isFullscreen ? "ウィンドウモードに戻す" : "フルスクリーン"}
+          title={isFullscreen ? t("tooltips.windowMode") : t("tooltips.fullscreen")}
         >
-          {isFullscreen ? "⤡" : "⤢"}
+          {isFullscreen ? (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <polyline points="5,1 1,1 1,5" />
+              <polyline points="11,15 15,15 15,11" />
+              <polyline points="15,5 15,1 11,1" />
+              <polyline points="1,11 1,15 5,15" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <polyline points="1,5 1,1 5,1" />
+              <polyline points="15,11 15,15 11,15" />
+              <polyline points="11,1 15,1 15,5" />
+              <polyline points="5,15 1,15 1,11" />
+            </svg>
+          )}
         </button>
       )}
 
@@ -847,7 +981,7 @@ const App: React.FC = () => {
         <button
           className="info-button"
           onClick={() => setShowAboutInfo(true)}
-          title="App Info"
+          title={t("tooltips.appInfo")}
         >
           <i className="fas fa-info-circle"></i>
         </button>
@@ -869,7 +1003,7 @@ const App: React.FC = () => {
             onStart={startTimer}
             onPause={pauseTimer}
             onReset={resetTimer}
-            onSettings={() => setShowSettings(true)}
+            onSettings={openSettings}
             onHelp={() => setShowHelp(true)}
             onMinutesChange={(minutes) =>
               updateTimer(minutes, timerState.seconds)
@@ -887,14 +1021,6 @@ const App: React.FC = () => {
           />
         )}
       </div>
-
-      {showSettings && (
-        <Settings
-          settings={settings}
-          onClose={() => setShowSettings(false)}
-          onSettingsChange={handleSettingsChange}
-        />
-      )}
 
       {showHelp && (
         <Help onClose={() => setShowHelp(false)} />

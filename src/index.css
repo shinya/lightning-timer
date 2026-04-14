@@ -152,15 +152,44 @@ button {
   border-radius: 2px;
   transition: all 0.2s ease;
   z-index: 1000;
-  font-size: 12px;
   color: var(--text-secondary);
-  font-weight: bold;
 }
 
 .compact-toggle-button:hover {
   background-color: rgba(0, 122, 204, 0.1);
   color: var(--accent);
   transform: scale(1.1);
+}
+
+/* レイヤー表示 ON/OFF ボタン */
+.layer-toggle-button {
+  position: absolute;
+  top: 8px;
+  left: 56px;
+  width: 16px;
+  height: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+  z-index: 1000;
+  color: var(--text-secondary);
+}
+
+.layer-toggle-button:hover {
+  background-color: rgba(0, 122, 204, 0.1);
+  color: var(--accent);
+  transform: scale(1.1);
+}
+
+.layer-toggle-button.active {
+  color: var(--accent);
+  background-color: rgba(0, 122, 204, 0.18);
 }
 
 /* フルスクリーン切り替えボタン（右上） */
@@ -180,9 +209,7 @@ button {
   border-radius: 2px;
   transition: all 0.2s ease;
   z-index: 1000;
-  font-size: 12px;
   color: var(--text-secondary);
-  font-weight: bold;
 }
 
 .fullscreen-toggle-button:hover {
@@ -900,6 +927,89 @@ button {
 
 .test-sound-btn:hover {
   background-color: var(--accent-hover);
+}
+
+/* レイヤー表示のスタイル設定 */
+.layer-style-section {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.layer-style-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.layer-style-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  min-width: 130px;
+}
+
+.layer-color-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.layer-color-picker {
+  width: 32px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+.layer-color-presets {
+  display: flex;
+  gap: 4px;
+}
+
+.layer-color-swatch {
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.layer-color-swatch:hover {
+  transform: scale(1.15);
+}
+
+.layer-color-swatch.selected {
+  border-color: var(--accent);
+  border-width: 2px;
+  box-shadow: 0 0 0 1px var(--bg-secondary);
+}
+
+.layer-shadow-controls {
+  display: flex;
+  gap: 14px;
+}
+
+.layer-shadow-controls label {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 4px !important;
+  cursor: pointer;
+  text-transform: none !important;
+  letter-spacing: normal !important;
+  font-weight: normal !important;
+  color: var(--text-primary) !important;
+  font-size: 0.9rem !important;
 }
 
 .alarm-sound-selector label {

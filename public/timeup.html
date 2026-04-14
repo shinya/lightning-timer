@@ -80,8 +80,8 @@
 <body onclick="console.log('Body clicked!'); closeWindow()">
     <div class="timeup-container">
         <div class="timeup-text">Time Up!!</div>
-        <div class="timeup-subtitle">The time has come.</div>
-        <div class="timeup-instruction">Click or press the Esc key to close</div>
+        <div id="timeup-subtitle" class="timeup-subtitle">The time has come.</div>
+        <div id="timeup-instruction" class="timeup-instruction">Click or press the Esc key to close</div>
     </div>
 
     <script>
@@ -134,9 +134,34 @@
                    }, 100);
                }
 
+        // i18n: localStorage から言語を取得してテキストを更新
+        var i18nStrings = {
+            en: { subtitle: 'The time has come.', instruction: 'Click or press the Esc key to close' },
+            ja: { subtitle: '時間になりました。', instruction: 'クリックまたは Esc キーで閉じる' }
+        };
+        function applyI18n() {
+            var lang = localStorage.getItem('lightning-timer-language') ||
+                (navigator.language.startsWith('ja') ? 'ja' : 'en');
+            var strings = i18nStrings[lang] || i18nStrings['en'];
+            var subtitle = document.getElementById('timeup-subtitle');
+            var instruction = document.getElementById('timeup-instruction');
+            if (subtitle) subtitle.textContent = strings.subtitle;
+            if (instruction) instruction.textContent = strings.instruction;
+        }
+
+        // ウィンドウが再表示されたときにも i18n を適用
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                applyI18n();
+            }
+        });
+
         // ページ読み込み完了時の処理
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Time Up window loaded');
+
+            // i18n 適用
+            applyI18n();
 
             // フラグをリセット
             isClosing = false;

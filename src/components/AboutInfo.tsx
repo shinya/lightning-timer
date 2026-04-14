@@ -1,20 +1,21 @@
 import React from "react";
 import packageJson from "../../package.json";
+import { useTranslation } from "../i18n/useTranslation";
 
 interface AboutInfoProps {
   onClose: () => void;
 }
 
 const AboutInfo: React.FC<AboutInfoProps> = ({ onClose }) => {
-  // package.jsonから情報を取得
-  const appName = "Lightning Timer"; // tauri.conf.jsonのproductName（表示名）
-  const appVersion = packageJson.version; // package.jsonのversion
+  const { t } = useTranslation();
+  const appName = "Lightning Timer";
+  const appVersion = packageJson.version;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content about-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>About</h2>
+          <h2>{t("about.title")}</h2>
           <button className="modal-close-button" onClick={onClose}>
             ×
           </button>
@@ -29,7 +30,7 @@ const AboutInfo: React.FC<AboutInfoProps> = ({ onClose }) => {
           </div>
           <div className="about-info">
             <h3 className="about-app-name">{appName}</h3>
-            <p className="about-version">Version {appVersion}</p>
+            <p className="about-version">{t("about.version")} {appVersion}</p>
           </div>
         </div>
       </div>

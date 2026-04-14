@@ -9,6 +9,7 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "label": "main",
@@ -27,7 +28,7 @@
       }
     ],
     "security": {
-      "capabilities": ["main-capability", "timeup-capability"]
+      "capabilities": ["main-capability", "timeup-capability", "layer-capability", "settings-capability"]
     }
   },
   "bundle": {

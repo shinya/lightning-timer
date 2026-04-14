@@ -3,8 +3,9 @@ import ReactDOM from "react-dom/client";
 import { isTauri } from "@tauri-apps/api/core";
 import { Store } from "@tauri-apps/plugin-store";
 import { initLanguage } from "./i18n";
-import App from "./App";
+import SettingsApp from "./SettingsApp";
 import "./index.css";
+import "./settings-page.css";
 
 async function bootstrap() {
   let savedLanguage: string | undefined;
@@ -19,10 +20,10 @@ async function bootstrap() {
   }
   initLanguage(savedLanguage);
 
-  ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
+  ReactDOM.createRoot(document.getElementById("settings-root") as HTMLElement).render(
     <React.StrictMode>
-      <App />
-    </React.StrictMode>,
+      <SettingsApp />
+    </React.StrictMode>
   );
 }
 

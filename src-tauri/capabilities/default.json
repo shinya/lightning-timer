@@ -19,6 +19,11 @@
     "core:window:allow-set-position",
     "core:window:allow-current-monitor",
     "core:window:allow-outer-position",
+    "core:event:default",
+    "core:event:allow-emit",
+    "core:event:allow-emit-to",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
     "store:default"
   ]
 }

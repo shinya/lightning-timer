@@ -1,0 +1,19 @@
+{
+  "identifier": "layer-capability",
+  "description": "Layer overlay window capabilities",
+  "windows": ["layer", "layer_ctrl"],
+  "permissions": [
+    "core:default",
+    "core:window:allow-close",
+    "core:window:allow-hide",
+    "core:window:allow-show",
+    "core:window:allow-set-position",
+    "core:window:allow-outer-position",
+    "core:window:allow-start-dragging",
+    "core:event:default",
+    "core:event:allow-emit",
+    "core:event:allow-emit-to",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten"
+  ]
+}
