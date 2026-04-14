@@ -152,9 +152,7 @@ button {
   border-radius: 2px;
   transition: all 0.2s ease;
   z-index: 1000;
-  font-size: 12px;
   color: var(--text-secondary);
-  font-weight: bold;
 }
 
 .compact-toggle-button:hover {
@@ -180,9 +178,7 @@ button {
   border-radius: 2px;
   transition: all 0.2s ease;
   z-index: 1000;
-  font-size: 12px;
   color: var(--text-secondary);
-  font-weight: bold;
 }
 
 .layer-toggle-button:hover {
@@ -213,9 +209,7 @@ button {
   border-radius: 2px;
   transition: all 0.2s ease;
   z-index: 1000;
-  font-size: 12px;
   color: var(--text-secondary);
-  font-weight: bold;
 }
 
 .fullscreen-toggle-button:hover {

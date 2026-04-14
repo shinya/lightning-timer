@@ -3,6 +3,9 @@ import { invoke, isTauri } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { Store } from "@tauri-apps/plugin-store";
 import { Settings as SettingsType } from "./types";
+import { useTranslation } from "./i18n/useTranslation";
+import { initLanguage } from "./i18n";
+import type { LanguageSetting } from "./i18n";
 
 const DEFAULT_SETTINGS: SettingsType = {
   alwaysOnTop: false,
@@ -14,6 +17,7 @@ const DEFAULT_SETTINGS: SettingsType = {
   layerTextColor: "#00ff66",
   layerShadowStyle: "dark",
   layerFontSize: 6,
+  language: "auto",
 };
 
 const LAYER_FONT_SIZE_MIN = 2;
@@ -61,10 +65,15 @@ function normalizeSettings(
       typeof saved.layerFontSize === "number" && saved.layerFontSize > 0
         ? saved.layerFontSize
         : DEFAULT_SETTINGS.layerFontSize,
+    language:
+      saved.language === "en" || saved.language === "ja" || saved.language === "auto"
+        ? saved.language
+        : DEFAULT_SETTINGS.language,
   };
 }
 
 const SettingsApp: React.FC = () => {
+  const { t, setLanguage: setI18nLanguage } = useTranslation();
   const [settings, setSettings] = useState<SettingsType>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -101,11 +110,14 @@ const SettingsApp: React.FC = () => {
     if (!isTauri()) return;
     const p = listen<SettingsType>("settings-pushed", (event) => {
       setSettings(event.payload);
+      // 言語が変わった場合はi18nも同期
+      initLanguage(event.payload.language);
+      setI18nLanguage(event.payload.language as LanguageSetting);
     });
     return () => {
       p.then((u) => u()).catch(() => {});
     };
-  }, []);
+  }, [setI18nLanguage]);
 
   const persist = useCallback(async (next: SettingsType) => {
     setSettings(next);
@@ -131,6 +143,16 @@ const SettingsApp: React.FC = () => {
       void persist({ ...settings, [key]: value });
     },
     [persist, settings]
+  );
+
+  const handleLanguageChange = useCallback(
+    (value: string) => {
+      const lang = value as LanguageSetting;
+      setI18nLanguage(lang);
+      initLanguage(lang);
+      void persist({ ...settings, language: lang as SettingsType["language"] });
+    },
+    [persist, settings, setI18nLanguage]
   );
 
   const handleClose = useCallback(async () => {
@@ -192,15 +214,34 @@ const SettingsApp: React.FC = () => {
   return (
     <div className="settings-page">
       <header className="settings-page-header">
-        <h1>Settings</h1>
-        <button className="settings-page-close" onClick={handleClose} title="Close (Esc)">
+        <h1>{t("settings.title")}</h1>
+        <button className="settings-page-close" onClick={handleClose} title={t("settings.close")}>
           ×
         </button>
       </header>
 
       <main className="settings-page-body">
         <section className="settings-section">
-          <h2 className="settings-section-title">Window</h2>
+          <h2 className="settings-section-title">{t("settings.language.title")}</h2>
+          <div className="settings-row settings-row-inline">
+            <span className="settings-row-label">{t("settings.language.label")}</span>
+            <div className="settings-row-control">
+              <select
+                className="settings-select"
+                value={settings.language}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+              >
+                <option value="auto">{t("settings.language.auto")}</option>
+                <option value="en">{t("settings.language.en")}</option>
+                <option value="ja">{t("settings.language.ja")}</option>
+              </select>
+            </div>
+          </div>
+          <p className="settings-row-hint">{t("settings.language.hint")}</p>
+        </section>
+
+        <section className="settings-section">
+          <h2 className="settings-section-title">{t("settings.window.title")}</h2>
           <div className="settings-row">
             <label className="settings-toggle">
               <input
@@ -208,9 +249,9 @@ const SettingsApp: React.FC = () => {
                 checked={settings.alwaysOnTop}
                 onChange={(e) => update("alwaysOnTop", e.target.checked)}
               />
-              <span>Always on top</span>
+              <span>{t("settings.window.alwaysOnTop")}</span>
             </label>
-            <p className="settings-row-hint">タイマーウィンドウを常に最前面に表示します</p>
+            <p className="settings-row-hint">{t("settings.window.alwaysOnTopHint")}</p>
           </div>
           <div className="settings-row">
             <label className="settings-toggle">
@@ -219,9 +260,9 @@ const SettingsApp: React.FC = () => {
                 checked={settings.darkMode}
                 onChange={(e) => update("darkMode", e.target.checked)}
               />
-              <span>Dark mode</span>
+              <span>{t("settings.window.darkMode")}</span>
             </label>
-            <p className="settings-row-hint">UI のテーマを切り替えます</p>
+            <p className="settings-row-hint">{t("settings.window.darkModeHint")}</p>
           </div>
           <div className="settings-row">
             <label className="settings-toggle">
@@ -230,16 +271,16 @@ const SettingsApp: React.FC = () => {
                 checked={settings.showTimeUpWindow}
                 onChange={(e) => update("showTimeUpWindow", e.target.checked)}
               />
-              <span>Show "Time Up" window</span>
+              <span>{t("settings.window.showTimeUpWindow")}</span>
             </label>
-            <p className="settings-row-hint">タイマー終了時に全画面の "Time Up" 画面を表示します</p>
+            <p className="settings-row-hint">{t("settings.window.showTimeUpWindowHint")}</p>
           </div>
         </section>
 
         <section className="settings-section">
-          <h2 className="settings-section-title">Alarm</h2>
+          <h2 className="settings-section-title">{t("settings.alarm.title")}</h2>
           <div className="settings-row settings-row-inline">
-            <span className="settings-row-label">Sound</span>
+            <span className="settings-row-label">{t("settings.alarm.sound")}</span>
             <div className="settings-row-control">
               <select
                 className="settings-select"
@@ -255,7 +296,7 @@ const SettingsApp: React.FC = () => {
               <button
                 className="settings-icon-button"
                 onClick={handleTestSound}
-                title={isPlaying ? "停止" : "試聴"}
+                title={isPlaying ? t("settings.alarm.testStop") : t("settings.alarm.testPlay")}
               >
                 {isPlaying ? "⏹" : "▶"}
               </button>
@@ -264,9 +305,9 @@ const SettingsApp: React.FC = () => {
         </section>
 
         <section className="settings-section">
-          <h2 className="settings-section-title">Layer overlay</h2>
+          <h2 className="settings-section-title">{t("settings.layer.title")}</h2>
           <div className="settings-row">
-            <span className="settings-row-label">Text color</span>
+            <span className="settings-row-label">{t("settings.layer.textColor")}</span>
             <div className="settings-color-group">
               <input
                 type="color"
@@ -298,12 +339,10 @@ const SettingsApp: React.FC = () => {
                 ))}
               </div>
             </div>
-            <p className="settings-row-hint">
-              レイヤー表示の数字色を選びます。背景がはっきりしない場面に合わせて調整できます。
-            </p>
+            <p className="settings-row-hint">{t("settings.layer.textColorHint")}</p>
           </div>
           <div className="settings-row">
-            <span className="settings-row-label">Shadow</span>
+            <span className="settings-row-label">{t("settings.layer.shadow")}</span>
             <div className="settings-radio-group">
               <label className="settings-radio">
                 <input
@@ -313,8 +352,8 @@ const SettingsApp: React.FC = () => {
                   checked={settings.layerShadowStyle === "dark"}
                   onChange={() => update("layerShadowStyle", "dark")}
                 />
-                <span>Dark shadow</span>
-                <span className="settings-radio-hint">明るい背景向け</span>
+                <span>{t("settings.layer.darkShadow")}</span>
+                <span className="settings-radio-hint">{t("settings.layer.darkShadowHint")}</span>
               </label>
               <label className="settings-radio">
                 <input
@@ -324,14 +363,14 @@ const SettingsApp: React.FC = () => {
                   checked={settings.layerShadowStyle === "light"}
                   onChange={() => update("layerShadowStyle", "light")}
                 />
-                <span>Light shadow</span>
-                <span className="settings-radio-hint">暗い背景向け</span>
+                <span>{t("settings.layer.lightShadow")}</span>
+                <span className="settings-radio-hint">{t("settings.layer.lightShadowHint")}</span>
               </label>
             </div>
           </div>
           <div className="settings-row">
             <span className="settings-row-label">
-              Font size
+              {t("settings.layer.fontSize")}
               <span className="settings-row-value">{settings.layerFontSize.toFixed(1)} rem</span>
             </span>
             <div className="settings-slider-group">
@@ -348,9 +387,9 @@ const SettingsApp: React.FC = () => {
                 type="button"
                 className="settings-text-button"
                 onClick={() => update("layerFontSize", DEFAULT_SETTINGS.layerFontSize)}
-                title="既定値に戻す"
+                title={t("settings.layer.resetToDefaultTitle")}
               >
-                Reset
+                {t("settings.layer.resetToDefault")}
               </button>
             </div>
           </div>
@@ -365,7 +404,7 @@ const SettingsApp: React.FC = () => {
             >
               12:34
             </div>
-            <p className="settings-row-hint">プレビュー</p>
+            <p className="settings-row-hint">{t("settings.layer.preview")}</p>
           </div>
         </section>
       </main>

@@ -8,8 +8,13 @@ import TimerControls from "./components/TimerControls";
 import Help from "./components/Help";
 import AboutInfo from "./components/AboutInfo";
 import { TimerState, Settings as SettingsType } from "./types";
+import { useTranslation } from "./i18n/useTranslation";
+import { initLanguage } from "./i18n";
+import type { LanguageSetting } from "./i18n";
 
 const App: React.FC = () => {
+  const { t, setLanguage: setI18nLanguage } = useTranslation();
+
   // Tauri APIの状態を確認
   useEffect(() => {
     // Tauri APIの初期化確認
@@ -40,6 +45,7 @@ const App: React.FC = () => {
     layerTextColor: "#00ff66",
     layerShadowStyle: "dark",
     layerFontSize: 6,
+    language: "auto",
   });
 
   // TimeUP表示の状態管理
@@ -103,6 +109,9 @@ const App: React.FC = () => {
           layerFontSize: typeof savedSettings.layerFontSize === "number" && savedSettings.layerFontSize > 0
             ? savedSettings.layerFontSize
             : 6,
+          language: savedSettings.language === "en" || savedSettings.language === "ja" || savedSettings.language === "auto"
+            ? savedSettings.language
+            : "auto",
         };
         setSettings(convertedSettings);
       }
@@ -140,7 +149,6 @@ const App: React.FC = () => {
     minutes: number;
     seconds: number;
   } | null>(null);
-  const [hasNumberBeenEdited, setHasNumberBeenEdited] = useState(false);
   const timeUpWindowShownRef = useRef(false);
 
   const loadTimerState = useCallback(async () => {
@@ -291,9 +299,6 @@ const App: React.FC = () => {
 
       const totalSeconds = minutes * 60 + seconds;
 
-      // 数字が編集されたことを記録
-      setHasNumberBeenEdited(true);
-
       setTimerState((prev) => {
         const newState = {
           ...prev,
@@ -330,23 +335,20 @@ const App: React.FC = () => {
     // アラーム音を停止
     stopAlarm();
 
-    // 数字が編集されていた場合のみ、現在の時間を記憶
-    if (hasNumberBeenEdited) {
+    // 新規開始時（一時停止からの再開でない場合）は現在の時間を記憶
+    if (!timerState.isPaused) {
       setLastSetTime({
         minutes: timerState.minutes,
         seconds: timerState.seconds,
       });
-      setHasNumberBeenEdited(false); // フラグをリセット
     }
-
-    // タイマー開始時の処理（フラグ管理を削除）
 
     setTimerState((prev) => ({
       ...prev,
       isRunning: true,
       isPaused: false,
     }));
-  }, [hasNumberBeenEdited, timerState.minutes, timerState.seconds, stopAlarm]);
+  }, [timerState.minutes, timerState.seconds, timerState.isPaused, stopAlarm]);
 
   const pauseTimer = useCallback(() => {
     setTimerState((prev) => ({
@@ -365,7 +367,6 @@ const App: React.FC = () => {
 
     // リセット時に記憶もクリア
     setLastSetTime(null);
-    setHasNumberBeenEdited(false);
 
     setTimerState((prev) => ({
       ...prev,
@@ -442,8 +443,11 @@ const App: React.FC = () => {
   const applyExternalSettings = useCallback(
     async (newSettings: SettingsType) => {
       setSettings(newSettings);
+      // 言語が変わった場合はi18nも同期
+      initLanguage(newSettings.language);
+      setI18nLanguage(newSettings.language as LanguageSetting);
     },
-    []
+    [setI18nLanguage]
   );
 
   // alwaysOnTop はストア起動読み込み時にも外部変更時にも自動で OS 側へ反映
@@ -903,7 +907,7 @@ const App: React.FC = () => {
       <button
         className="power-button"
         onClick={handlePowerButtonClick}
-        title="アプリケーションを終了"
+        title={t("tooltips.exitApp")}
       >
         <img src="/icon/power.svg" width="16" height="16" alt="Power" />
       </button>
@@ -913,23 +917,38 @@ const App: React.FC = () => {
         className="compact-toggle-button"
         onClick={handleCompactModeToggle}
         title={
-          settings.displayMode === "normal" ? "簡易表示モード" :
-          settings.displayMode === "compact" ? "ミニマム表示モード" :
-          "通常表示に戻す"
+          settings.displayMode === "normal" ? t("tooltips.compactMode") :
+          settings.displayMode === "compact" ? t("tooltips.minimalMode") :
+          t("tooltips.normalMode")
         }
       >
-        {settings.displayMode === "normal" ? "⊡" :
-         settings.displayMode === "compact" ? "⧉" :
-         "⊞"}
+        {settings.displayMode === "normal" ? (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="1" y="3" width="14" height="10" rx="1.5" />
+            <line x1="1" y1="6" x2="15" y2="6" />
+          </svg>
+        ) : settings.displayMode === "compact" ? (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="3" y="4" width="10" height="8" rx="1.5" />
+            <line x1="3" y1="7" x2="13" y2="7" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <rect x="5" y="5" width="6" height="6" rx="1" />
+          </svg>
+        )}
       </button>
 
       {/* レイヤー表示 ON/OFF ボタン */}
       <button
         className={`layer-toggle-button${layerEnabled ? " active" : ""}`}
         onClick={toggleLayer}
-        title={layerEnabled ? "レイヤー表示を消す (L)" : "レイヤー表示を出す (L)"}
+        title={layerEnabled ? t("tooltips.layerOff") : t("tooltips.layerOn")}
       >
-        ▦
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <rect x="1" y="4" width="10" height="8" rx="1" />
+          <rect x="5" y="1" width="10" height="8" rx="1" />
+        </svg>
       </button>
 
       {/* フルスクリーン切り替えボタン（右上） - 簡易モードのみ表示 */}
@@ -937,9 +956,23 @@ const App: React.FC = () => {
         <button
           className="fullscreen-toggle-button"
           onClick={handleFullscreenToggle}
-          title={isFullscreen ? "ウィンドウモードに戻す" : "フルスクリーン"}
+          title={isFullscreen ? t("tooltips.windowMode") : t("tooltips.fullscreen")}
         >
-          {isFullscreen ? "⤡" : "⤢"}
+          {isFullscreen ? (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <polyline points="5,1 1,1 1,5" />
+              <polyline points="11,15 15,15 15,11" />
+              <polyline points="15,5 15,1 11,1" />
+              <polyline points="1,11 1,15 5,15" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <polyline points="1,5 1,1 5,1" />
+              <polyline points="15,11 15,15 11,15" />
+              <polyline points="11,1 15,1 15,5" />
+              <polyline points="5,15 1,15 1,11" />
+            </svg>
+          )}
         </button>
       )}
 
@@ -948,7 +981,7 @@ const App: React.FC = () => {
         <button
           className="info-button"
           onClick={() => setShowAboutInfo(true)}
-          title="App Info"
+          title={t("tooltips.appInfo")}
         >
           <i className="fas fa-info-circle"></i>
         </button>

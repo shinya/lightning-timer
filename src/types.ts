@@ -16,6 +16,7 @@ export interface Settings {
   layerTextColor: string;
   layerShadowStyle: "dark" | "light";
   layerFontSize: number;
+  language: "en" | "ja" | "auto";
 }
 
 export interface TimerDisplayProps {

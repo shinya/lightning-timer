@@ -478,7 +478,7 @@ async fn show_layer_window(app: AppHandle) -> Result<(), String> {
     println!("DEBUG: show_layer_window called");
 
     let (default_x, default_y, layer_w, layer_h) = layer_default_geometry(&app);
-    let ctrl_w: f64 = 80.0;
+    let ctrl_w: f64 = 50.0;
     let ctrl_h: f64 = 28.0;
     let ctrl_gap: f64 = 8.0;
     let ctrl_x = default_x + (layer_w - ctrl_w) / 2.0;
@@ -530,7 +530,9 @@ async fn show_layer_window(app: AppHandle) -> Result<(), String> {
         .title("Lightning Timer Controls")
         .inner_size(ctrl_w, ctrl_h)
         .position(ctrl_x, ctrl_y)
-        .resizable(false)
+        .resizable(true)
+        .min_inner_size(ctrl_w, ctrl_h)
+        .max_inner_size(ctrl_w, ctrl_h)
         .decorations(false)
         .transparent(true)
         .shadow(false)

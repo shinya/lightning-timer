@@ -27,7 +27,6 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 4px;
             padding: 0 6px;
             background: rgba(20, 20, 20, 0.72);
             border: 1px solid rgba(255, 255, 255, 0.18);
@@ -56,34 +55,6 @@
             letter-spacing: 1.5px;
             pointer-events: none;
         }
-
-        .close {
-            width: 22px;
-            height: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.12);
-            color: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            font-size: 14px;
-            line-height: 1;
-            cursor: pointer;
-            padding: 0;
-            -webkit-app-region: no-drag;
-            app-region: no-drag;
-        }
-
-        .close:hover {
-            background: rgba(255, 60, 60, 0.85);
-            color: #fff;
-            border-color: rgba(255, 120, 120, 0.8);
-        }
-
-        .close:active {
-            transform: scale(0.92);
-        }
     </style>
 </head>
 <body>
@@ -91,55 +62,6 @@
         <div class="grip" data-tauri-drag-region title="Drag to move">
             <span class="dots">⋮⋮</span>
         </div>
-        <button class="close" id="close" title="Exit layer mode"
-                onmousedown="window.__layerClose && window.__layerClose('onmousedown')"
-                onclick="window.__layerClose && window.__layerClose('onclick')">×</button>
     </div>
-
-    <script>
-        (function () {
-            console.log('[layer_ctrl] init script start');
-            var closeBtn = document.getElementById('close');
-            if (!closeBtn) {
-                console.error('[layer_ctrl] close button not found');
-                return;
-            }
-
-            var busy = false;
-            window.__layerClose = function (source) {
-                if (busy) return;
-                console.log('[layer_ctrl] close triggered via', source);
-                if (!window.__TAURI__ || !window.__TAURI__.core) {
-                    console.error('[layer_ctrl] __TAURI__ not available');
-                    return;
-                }
-                busy = true;
-                var invoke = window.__TAURI__.core.invoke;
-                invoke('exit_layer_mode').then(function () {
-                    console.log('[layer_ctrl] exit_layer_mode ok');
-                }, function (err) {
-                    console.error('[layer_ctrl] exit_layer_mode failed:', err);
-                    // フォールバック: 直接 hide を呼ぶ
-                    invoke('hide_layer_window').catch(function (e2) {
-                        console.error('[layer_ctrl] hide_layer_window also failed:', e2);
-                    });
-                }).finally(function () {
-                    setTimeout(function () { busy = false; }, 200);
-                });
-            };
-
-            closeBtn.addEventListener('pointerdown', function (e) {
-                e.stopPropagation();
-                e.preventDefault();
-                window.__layerClose('pointerdown');
-            }, true);
-            closeBtn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                e.preventDefault();
-                window.__layerClose('click');
-            }, true);
-            console.log('[layer_ctrl] close handlers attached');
-        })();
-    </script>
 </body>
 </html>

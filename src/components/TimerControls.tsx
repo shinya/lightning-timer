@@ -1,5 +1,6 @@
 import React, { useCallback } from "react";
 import { TimerControlsProps } from "../types";
+import { useTranslation } from "../i18n/useTranslation";
 
 const TimerControls: React.FC<TimerControlsProps> = ({
   minutes,
@@ -16,6 +17,8 @@ const TimerControls: React.FC<TimerControlsProps> = ({
   alarmVolume,
   onAlarmVolumeChange,
 }) => {
+  const { t } = useTranslation();
+
   const handleNumberClick = useCallback(
     (number: number) => {
       // 文字列操作による左シフト動作
@@ -252,8 +255,8 @@ const TimerControls: React.FC<TimerControlsProps> = ({
                 disabled={minutes === 0 && seconds === 0}
                 title={
                   minutes === 0 && seconds === 0
-                    ? "時間を設定してください"
-                    : "タイマーを開始"
+                    ? t("tooltips.setTimeFirst")
+                    : t("tooltips.startTimer")
                 }
               >
                 Start
