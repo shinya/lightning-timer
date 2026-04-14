@@ -514,8 +514,8 @@ async fn show_layer_window(app: AppHandle) -> Result<(), String> {
     #[cfg(target_os = "macos")]
     apply_macos_overlay_behavior(&layer_window, true);
 
-    // 操作ハンドル（非クリックスルー・ドラッグ + 閉じる）
-    let ctrl_window = if let Some(w) = app.get_webview_window("layer_ctrl") {
+    // 操作ハンドル（非クリックスルー・ドラッグ）
+    let _ctrl_window = if let Some(w) = app.get_webview_window("layer_ctrl") {
         w.show()
             .map_err(|e| format!("Failed to show layer_ctrl: {}", e))?;
         w
@@ -542,7 +542,7 @@ async fn show_layer_window(app: AppHandle) -> Result<(), String> {
     };
 
     #[cfg(target_os = "macos")]
-    apply_macos_overlay_behavior(&ctrl_window, false);
+    apply_macos_overlay_behavior(&_ctrl_window, false);
 
     // 初期位置同期
     sync_layer_to_ctrl(&app);
