@@ -486,27 +486,24 @@ async fn show_layer_window(app: AppHandle) -> Result<(), String> {
 
     // ディスプレイ用（透過・クリックスルー）
     let layer_window = if let Some(w) = app.get_webview_window("layer") {
-        w.show().map_err(|e| format!("Failed to show layer: {}", e))?;
+        w.show()
+            .map_err(|e| format!("Failed to show layer: {}", e))?;
         w
     } else {
-        tauri::WebviewWindowBuilder::new(
-            &app,
-            "layer",
-            tauri::WebviewUrl::App("layer.html".into()),
-        )
-        .title("Lightning Timer Overlay")
-        .inner_size(layer_w, layer_h)
-        .position(default_x, default_y)
-        .resizable(false)
-        .decorations(false)
-        .transparent(true)
-        .shadow(false)
-        .always_on_top(true)
-        .skip_taskbar(true)
-        .focused(false)
-        .visible(true)
-        .build()
-        .map_err(|e| format!("Failed to create layer window: {}", e))?
+        tauri::WebviewWindowBuilder::new(&app, "layer", tauri::WebviewUrl::App("layer.html".into()))
+            .title("Lightning Timer Overlay")
+            .inner_size(layer_w, layer_h)
+            .position(default_x, default_y)
+            .resizable(false)
+            .decorations(false)
+            .transparent(true)
+            .shadow(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .focused(false)
+            .visible(true)
+            .build()
+            .map_err(|e| format!("Failed to create layer window: {}", e))?
     };
 
     // クリックスルー有効化
@@ -519,7 +516,8 @@ async fn show_layer_window(app: AppHandle) -> Result<(), String> {
 
     // 操作ハンドル（非クリックスルー・ドラッグ + 閉じる）
     let ctrl_window = if let Some(w) = app.get_webview_window("layer_ctrl") {
-        w.show().map_err(|e| format!("Failed to show layer_ctrl: {}", e))?;
+        w.show()
+            .map_err(|e| format!("Failed to show layer_ctrl: {}", e))?;
         w
     } else {
         tauri::WebviewWindowBuilder::new(
