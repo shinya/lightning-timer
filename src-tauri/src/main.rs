@@ -415,6 +415,15 @@ fn apply_macos_overlay_behavior(window: &tauri::WebviewWindow, panel_nonactivati
     });
 }
 
+/// フォントサイズ（rem）に基づいてレイヤーウィンドウの適切なサイズ（論理ピクセル）を計算する。
+/// "TIME UP"（7文字モノスペース + letter-spacing 0.05em）が収まるサイズを返す。
+fn layer_size_for_font(font_size: f64) -> (f64, f64) {
+    let font_px = font_size * 16.0;
+    let width = (font_px * 5.5).max(320.0);
+    let height = (font_px * 1.5).max(120.0);
+    (width, height)
+}
+
 /// レイヤーディスプレイウィンドウの既定位置とサイズ（論理ピクセル・グローバル座標）を計算する。
 /// 複数モニター環境では main ウィンドウが乗っているモニターを優先する
 fn layer_default_geometry(app: &AppHandle) -> (f64, f64, f64, f64) {
@@ -608,6 +617,17 @@ async fn update_layer_style(
     let safe_font_size = font_size.clamp(1.0, 20.0);
 
     if let Some(layer) = app.get_webview_window("layer") {
+        // フォントサイズに応じてウィンドウサイズを調整
+        let (new_w, new_h) = layer_size_for_font(safe_font_size);
+        if let Err(e) = layer.set_size(tauri::Size::Logical(tauri::LogicalSize {
+            width: new_w,
+            height: new_h,
+        })) {
+            println!("DEBUG: Failed to resize layer window: {}", e);
+        }
+        // リサイズ後にレイヤー位置を再同期
+        sync_layer_to_ctrl(&app);
+
         let script = format!(
             "(function(){{var r=document.documentElement;r.style.setProperty('--layer-color','{}');r.style.setProperty('--layer-shadow','{}');r.style.setProperty('--layer-font-size','{}rem');console.log('[layer] style set via eval',r.style.getPropertyValue('--layer-color'),r.style.getPropertyValue('--layer-font-size'));}})();",
             safe_color, shadow_value, safe_font_size
@@ -617,8 +637,8 @@ async fn update_layer_style(
             return Err(format!("Failed to update layer style: {}", e));
         }
         println!(
-            "DEBUG: Layer style updated color={} shadow={} fontSize={}rem",
-            safe_color, shadow, safe_font_size
+            "DEBUG: Layer style updated color={} shadow={} fontSize={}rem size={}x{}",
+            safe_color, shadow, safe_font_size, new_w, new_h
         );
     }
     Ok(())
