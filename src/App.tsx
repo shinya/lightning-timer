@@ -378,6 +378,23 @@ const App: React.FC = () => {
     }));
   }, [stopAlarm]);
 
+  const revertTimer = useCallback(() => {
+    if (!lastSetTime) return;
+
+    stopAlarm();
+    setShowTimeUp(false);
+
+    const restoredTotalSeconds = lastSetTime.minutes * 60 + lastSetTime.seconds;
+    setTimerState((prev) => ({
+      ...prev,
+      minutes: lastSetTime.minutes,
+      seconds: lastSetTime.seconds,
+      timeRemaining: restoredTotalSeconds,
+      isRunning: false,
+      isPaused: false
+    }));
+  }, [lastSetTime, stopAlarm]);
+
   // F12キーでデベロッパーツールを開く
   useEffect(() => {
     const handleKeyDown = async (event: KeyboardEvent) => {
@@ -1003,6 +1020,7 @@ const App: React.FC = () => {
             onStart={startTimer}
             onPause={pauseTimer}
             onReset={resetTimer}
+            onRevertTime={revertTimer}
             onSettings={openSettings}
             onHelp={() => setShowHelp(true)}
             onMinutesChange={(minutes) =>
